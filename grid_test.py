@@ -49,6 +49,31 @@ def equation_of_line2(x, turbine_coordinates, radius, direction):
     return [line2_point2_x, line2_point2_y]
 
 
+def wake_start_points(coordinates):
+#               -----------------------------------------------------------------------------------------------------------------
+                # wake outline starts from the diameter of the turbine blades                                           (wake)
+                # as the nacelle rotates to face the wind, the coordinates of the wake starting points change  i.e.   \        /
+                                                                                                                    #  \      /
+                                                                                                                    #   \    /
+                                                                                                                    #    \  / 
+#                                              s                                                                          ^  ^ these points rotate
+#               Let the points (x1,y1) and (x2,y2) represent the two points,
+                # the 4 variables are affectede by cos(theta) and sin(theta) depending on whether theta is 0<t<90, 90<t<180, -90<t<0, -180<t<-90
+                # where x and y are the turbine coodrinates
+                # i.e. for 0<theta<90 (up to coming from east)  x1 = x - rcos(theta)    y1 = y + rsin(theta)   x2 = x + rcos(theta) y2 = y -rsin(theta)
+#               ------------------------------------------------------------------------------------------------------------------
+
+x = coordinates[0]
+
+
+
+if wind_dir 
+
+
+
+
+
+
 
 
 
