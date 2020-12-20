@@ -15,17 +15,7 @@ from shapely.geometry.polygon import Polygon
 # https://stackoverflow.com/questions/25439243/find-the-area-between-two-curves-plotted-in-matplotlib-fill-between-area
 
 
-r_0 = 56
 #vestas v112 3.5MW
-
-# https://www.w3resource.com/python-exercises/basic/python-basic-1-exercise-40.php
-
-# ((wakes[j])*np.sin(-U_direction_radians)+(r_0+alpha*wakes[j])*np.cos(-U_direction_radians))+y[i]
-
-"0 degrees is coming from due North."
-"+90 degrees means the wind is coming from due East, -90 from due West"
-U_direction = float(sys.argv[1])
-wind_direction = (U_direction+90) * np.pi / 180. # plus 90 to align with 0 degrees as north
 
 
 #  https://www.sciencedirect.com/science/article/pii/S0960148116309429?via%3Dihub
@@ -115,7 +105,7 @@ def f(x_object, y_object, poly, origin):
     kw = 0.04 
     print(poly)
     result=np.empty((x_object.shape[0],y_object.shape[0]),dtype="float32")
-
+    
     for i in range(0, x_object.shape[0]):
         for j in range(0, y_object.shape[0]):
 
@@ -135,61 +125,83 @@ def f(x_object, y_object, poly, origin):
 
     return result
     
- 
+
+def main(angle):
+
+    # "0 degrees is coming from due North."
+    # "+90 degrees means the wind is coming from due East, -90 from due West"
+    U_direction = float(angle)
+    wind_direction = (U_direction+90) * np.pi / 180. # plus 90 to align with 0 degrees as north
+
+    r_0 = 56
+    turbine_origin=[0, 0]
+    x = 2000
+
+    # -----------1 refers to point 1, 2 refers to point 2, the two points represent either side of the turbine swept area
+    x1, x2, y1, y2 = wake_start_points(turbine_origin,U_direction,r_0)
+    line1_point2 = equation_of_line1(x,[x1,y1], r_0, wind_direction) #get the distant point of the wake
+    line1_xValues = [x1, line1_point2[0]] # array of x values for wake line 1
+    line1_yValues = [y1, line1_point2[1]] # array of y values for line 1
 
 
-turbine_origin=[1000, 1000]
+    line2_point2 = []
+    line2_point2 = equation_of_line2(x,[x2,y2], r_0, wind_direction) #get the distant point of the wake
+    line2_xValues = [x2, line2_point2[0]] # array of x values for wake line 2
+    line2_yValues = [y2, line2_point2[1]] # array of y values for wake line 2
 
-x = 1000
-
-
-# -----------1 refers to point 1, 2 refers to point 2, the two points represent either side of the turbine swept area
-x1, x2, y1, y2 = wake_start_points(turbine_origin,U_direction,r_0)
-line1_point2 = equation_of_line1(x,[x1,y1], r_0, wind_direction) #get the distant point of the wake
-line1_xValues = [x1, line1_point2[0]] # array of x values for wake line 1
-line1_yValues = [y1, line1_point2[1]] # array of y values for line 1
-
-
-line2_point2 = []
-line2_point2 = equation_of_line2(x,[x2,y2], r_0, wind_direction) #get the distant point of the wake
-line2_xValues = [x2, line2_point2[0]] # array of x values for wake line 2
-line2_yValues = [y2, line2_point2[1]] # array of y values for wake line 2
-
-
-
-# -------------Create a Polygon--------------
-coords = [(x1, y1), (line1_point2[0], line1_point2[1]), (line2_point2[0], line2_point2[1]), (x2, y2)]
-poly = Polygon(coords)
-# plt.plot(*poly.exterior.xy)
-#-------------Check If Point is in polygon--------------
-p1 = Point(65, 110)
-# print(p1.within(poly))
-
-
-# plt.plot(line1_xValues, line1_yValues, 'b-')
-# plt.plot(line2_xValues, line2_yValues, 'r-')
-# plt.axis('scaled')
-
-
-x = np.linspace(0,2000, 200, endpoint = True) # x intervals
-y = np.linspace(0,2000,200, endpoint = True) # y intervals
+    # -------------Create a Polygon--------------
+    coords = [(x1, y1), (line1_point2[0], line1_point2[1]), (line2_point2[0], line2_point2[1]), (x2, y2)]
+    poly = Polygon(coords)
+    # plt.plot(*poly.exterior.xy)
+    #-------------Check If Point is in polygon--------------
+    p1 = Point(65, 110)
+    # print(p1.within(poly))
 
 
 
-X, Y = np.meshgrid(x,y)
-
-Z = f(X,Y, poly, turbine_origin)
-np.set_printoptions(threshold=np.inf)
-print(Z)
-
-# plt.show()
+    # plt.plot(line1_xValues, line1_yValues, 'b-')
+    # plt.plot(line2_xValues, line2_yValues, 'r-')
+    # plt.axis('scaled')
 
 
+    x = np.linspace(-2500,2500, 200, endpoint = True) # x intervals
+    y = np.linspace(-2500,2500,200, endpoint = True) # y intervals
 
-plt.figure(1, figsize=(13,5))
-plt.pcolor(X, Y, Z, shading='auto')
-plt.axis('scaled')
-plt.show()
+
+
+    X, Y = np.meshgrid(x,y)
+
+    Z = f(X,Y, poly, turbine_origin)
+    np.set_printoptions(threshold=np.inf)
+    print(Z)
+
+    # plt.show()
+
+    test = [[1,2,3],[4,5,6],[7,8,9]]
+    print(test*5)
+
+    plt.figure(1, figsize=(13,5))
+    plt.pcolor(X, Y, Z, shading='auto')
+    plt.axis('scaled')
+    plt.show()
+
+
+
+if __name__ =='__main__':
+    main(sys.argv[1])
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 # z is wind speed, function of distance from turbine (in this case at 0,0)
 #  point:
