@@ -174,15 +174,15 @@ def main(angle):
 
     r_0 = 56
     turbine1_origin=[0, 0]
-    turbine2_origin=[500, 500]
-    turbine3_origin=[500, -500]
-    turbine4_origin=[-500, 500]
-    turbine5_origin=[-500, -500]
+    turbine2_origin=[1500,1500]
+    turbine3_origin=[1500, -1500]
+    turbine4_origin=[-1500, 1500]
+    turbine5_origin=[-1500, -1500]
     wake_distance = 5000 # in metres
     V0 = float(25)
 
-    x = np.linspace(-5000,5000, 500, endpoint = True) # x intervals
-    y = np.linspace(-5000,5000,500, endpoint = True) # y intervals
+    x = np.linspace(-2000,3000, 500, endpoint = True) # x intervals
+    y = np.linspace(-2000,3000,500, endpoint = True) # y intervals
     X, Y = np.meshgrid(x,y)
 
     A = np.array(get_array_of_jensens_factor(wake_distance,turbine1_origin,U_direction,r_0, X, Y))
@@ -206,12 +206,23 @@ def main(angle):
 
     print(Z)
 
-    
+
 
     plt.figure(1, figsize=(13,5))
     plt.pcolor(X, Y, Z, shading='auto')
-    plt.colorbar()
     plt.axis('scaled')
+    plt.colorbar()
+    
+
+    # ax = Axes3D(plt.gcf())
+    # ax.plot_surface(X,Y,Z)
+
+    # fig, ax = plt.subplots()
+    # CS = ax.contour(X, Y, Z)
+    # ax.clabel(CS, inline=1, fontsize=10)
+    # ax.set_title('Simplest default with labels')
+
+
     plt.show()
 
 
@@ -221,97 +232,23 @@ if __name__ =='__main__':
 
 
 
+# next steps
+# cfd basic simulation of pylon + actuator disc
+
+#----------21/12/20---------------------
+#1) feed in turbine x y coordinates by reading csv 
+#2) create array of coeff for each array
+
+#3) create ui showing power output due to each turbines wind speed
+#4 create algo, sanity case 
 
 
 
 
 
-
-
-
-
-
-
-# z is wind speed, function of distance from turbine (in this case at 0,0)
-#  point:
-
-#1) how do you iterate through Z, which is the field of velocities, to add another turbine
-# ^ create Z array for each turbine, then do element by element multiplication for the whole grid for each turbine
-# The z arrays calculated for each turbine represents the wind speed deficiency i.e. jensen speed, for each wake as a function of distance
 
 #today 19/12/20
 #) create function to check if a point lies within the wake
 #) check that the function works, for different angles
 #) create Z array for whole grid (grid of 1's) but applying 
 
-
-
-
-
-
-# tomorrow
-#add auto equation of lines from points into the Z function limits, i.e. find gradient and intercept of wake lines
-# warning: these may change as line rotates, i.e. sign changes. How to deal with etc
-
-
-
-# ax = Axes3D(plt.gcf())
-# ax.plot_surface(X,Y,Z)
-# plt.show()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# p = np.pi
-# pi = np.pi
-# x = np.linspace(0,8*p, 100, endpoint = True) # x intervals
-# y = np.linspace(0,1,10, endpoint = True) # y intervals
-
-# def f(x, y):
-#     return y * np.np.sin(x) # returns a z value as a function of each x y pair
-
-# X, Y = np.meshgrid(x,y) 
-# # X is the x values for each row of Y
-# # Y is the y values for each column of X
-# Z = f(X, Y) # iteratively produces a z for each xy pair 
-# print(X.shape) #(10,100)
-# print(Y.shape) #(10,100)
-# print(Z.shape) #(10,100)
-
-# plt.figure(1, figsize=(13,5))
-# plt.pcolor(X, Y, Z)
-
-
-
-# plt.figure(2, figsize=(13,5))
-# ax = Axes3D(plt.gcf())
-
-# ax.plot_surface(X, Y, Z)
-
-# plt.show()
-
-
-
-
-
-
-# test_x = 0 + 50*np.np.cos(-U_direction_radians)-(r_0+alpha*50)*np.np.sin(-U_direction_radians)
-# test_y = 250 + 50*np.np.sin(-U_direction_radians)+(r_0+alpha*50)*np.np.cos(-U_direction_radians)
-
-
-# ax.plot([test_x], [test_y], [0], c = 'r', marker='1')
