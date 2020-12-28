@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import time
+import csv
 import sys
 import math
 from mpl_toolkits.mplot3d import Axes3D
@@ -57,8 +58,10 @@ def wake_start_points(coordinates,angle,r):
                     # i.e. for 0<theta<90 (up to coming from east)  x1 = x - rcos(theta)    y1 = y + rsin(theta)   x2 = x + rcos(theta) y2 = y -rsin(theta)
     #               ------------------------------------------------------------------------------------------------------------------
 
-    x = coordinates[0]
-    y = coordinates[1]
+    x = float(coordinates[0])
+    y = float(coordinates[1])
+    print(type(x))
+    print(type(y))
     # print(type(angle))
     #sign coefficients to ensure wakes start in right position, considering cos and sin waves 
     if (angle >= 0 and angle <= 90):
@@ -149,8 +152,8 @@ def f(x_object, y_object, poly, origin):
 #----------- f2 returns the array of coefficients for a turbine------------------
 #-----------x and y objects are just meshgrids for the coordinates------------------
 def f2(X, Y, coords,origin):
-    turbine_x = origin[0]
-    turbine_y = origin[1]
+    turbine_x = float(origin[0])
+    turbine_y = float(origin[1])
 
     print('Calculating Turbine Array of Speed Deficiency Coefficients \n for turbine location: ' + str(origin))
     start = time.process_time()
@@ -216,6 +219,15 @@ def main(angle):
     U_direction = float(angle)
 
     r_0 = 56
+
+    coordinates = []
+    with open('turbines.txt') as csv_file:
+        csv_reader = csv.reader(csv_file, delimiter=',')
+        next(csv_file)
+        for row in csv_reader:
+            coordinates.append([row[1],row[2]])
+
+
     turbine1_origin=[-500, 0]
     turbine2_origin=[500,0]
     turbine3_origin=[500, 500]
@@ -228,37 +240,45 @@ def main(angle):
     x = np.linspace(-2000,2000, 1000, endpoint = True) # x intervals
     y = np.linspace(-2000,2000,1000, endpoint = True) # y intervals
     X, Y = np.meshgrid(x,y)
-    turbine1_x_index=min(range(len(X[0])), key=lambda i: abs(X[0][i]-turbine1_origin[0]))
-    turbine1_y_index =min(range(len(X[0])), key=lambda i: abs(Y[i][0]-turbine1_origin[1]))
-    print(X[0][turbine1_x_index])
-    print(Y[turbine1_y_index][0])
-    print(turbine1_y_index)
-    print(Y[turbine1_y_index+1][0])
+   
+    list_of_jensens_factors = []
 
-    A = np.array(get_array_of_jensens_factor(wake_distance,turbine1_origin,U_direction,r_0, X, Y))
+    for i in range(0,len(coordinates)):
 
-    B = np.array(get_array_of_jensens_factor(wake_distance,turbine2_origin,U_direction,r_0, X, Y))
+        coefficient_matrix = np.array(get_array_of_jensens_factor(wake_distance,coordinates[i],U_direction,r_0, X, Y))
+        list_of_jensens_factors.append(coefficient_matrix)
 
-    C = np.array(get_array_of_jensens_factor(wake_distance,turbine3_origin,U_direction,r_0, X, Y))
 
-    D = np.array(get_array_of_jensens_factor(wake_distance,turbine4_origin,U_direction,r_0, X, Y))
 
-    E = np.array(get_array_of_jensens_factor(wake_distance,turbine5_origin,U_direction,r_0, X, Y))
+    dummy = np.ones((X.shape[0],Y.shape[0]),dtype="float32")
+    for i in range(0,len(list_of_jensens_factors)):
+        dummy = np.multiply(dummy,list_of_jensens_factors[i])
+
+
+    # A = np.array(get_array_of_jensens_factor(wake_distance,turbine1_origin,U_direction,r_0, X, Y))
+
+    # B = np.array(get_array_of_jensens_factor(wake_distance,turbine2_origin,U_direction,r_0, X, Y))
+
+    # C = np.array(get_array_of_jensens_factor(wake_distance,turbine3_origin,U_direction,r_0, X, Y))
+
+    # D = np.array(get_array_of_jensens_factor(wake_distance,turbine4_origin,U_direction,r_0, X, Y))
+
+    # E = np.array(get_array_of_jensens_factor(wake_distance,turbine5_origin,U_direction,r_0, X, Y))
     
-    F = np.array(get_array_of_jensens_factor(wake_distance,turbine6_origin,U_direction,r_0, X, Y))
+    # F = np.array(get_array_of_jensens_factor(wake_distance,turbine6_origin,U_direction,r_0, X, Y))
     
-    AandB = np.multiply(A,B)
+    # AandB = np.multiply(A,B)
 
-    CandD = np.multiply(C,D)
+    # CandD = np.multiply(C,D)
 
-    CandDandE = np.multiply(CandD,E)
+    # CandDandE = np.multiply(CandD,E)
 
-    CtoF = np.multiply(CandDandE,F)
+    # CtoF = np.multiply(CandDandE,F)
 
-    Z = np.multiply(AandB, CtoF)
-    Z = Z*V0
+    # Z = np.multiply(AandB, CtoF)
+    Z = dummy*V0
 
-    probe_x, probe_y = windspeed_probe(turbine1_origin,U_direction,X,Y)
+    probe_x, probe_y = windspeed_probe(turbine5_origin,U_direction,X,Y)
     print('turbine 1 wind speed: '+ str(Z[probe_y][probe_x])+' meters per second')
 
     mycmap = cm.get_cmap('jet')
@@ -271,11 +291,7 @@ def main(angle):
     # ax = Axes3D(plt.gcf())
     # ax.plot_surface(X,Y,Z)
 
-    # fig, ax = plt.subplots()
-    # CS = ax.contour(X, Y, Z)
-    # ax.clabel(CS, inline=1, fontsize=10)
-    # ax.set_title('Simplest default with labels')
-
+  
 
     plt.show()
 
