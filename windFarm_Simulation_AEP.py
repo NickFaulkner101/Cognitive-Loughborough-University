@@ -90,12 +90,15 @@ def wake_start_points(coordinates,angle,r):
     y2 = y + D*r*np.sin(theta)
     return [x1,x2,y1,y2]
 
-def windspeed_probe(coordinates,angle,X,Y):
+def windspeed_probe(coordinates,angle,X,Y,r,Z):
 #-----------------------------------------------------------------------------------------------------------
 #       Wind speed for each respective turbine needs to be measured from a slight upstream position
 #       to the wind turbine coordinates. If incident wind speed is measured from the wind turbine center itself,
 #       the down stream speed in the wake is recorded.
+
+#       Additionally, the probe is the average of two positions at the rotor edges, in case wake only covers part of turbine
 #-----------------------------------------------------------------------------------------------------------     
+    
     theta = (angle) * np.pi / 180.
 
     x = float(coordinates[0])
@@ -109,7 +112,38 @@ def windspeed_probe(coordinates,angle,X,Y):
     turbine1_x_index=min(range(len(X[0])), key=lambda i: abs(X[0][i]-x_coord))   # returmns closest x and y 
     turbine1_y_index =min(range(len(X[0])), key=lambda i: abs(Y[i][0]-y_coord))
 
-    return [turbine1_x_index,turbine1_y_index]
+    #turbine centre
+    #pick 6 points along the turbine and calculate wind speed at each point
+    #each point needs to be slightly upstream
+    #then average the speeds
+    #the below loop functions by working out the speed at 6 points radiating from the centre of the turbine
+    speeds = []
+    for i in range(1,4):
+        #point 1 and point 2 are same distance either direction from wind turbine nacelle/centre
+        x1 = x -(i/3)*r*np.cos(theta)
+        x2 = x + (i/3)*r*np.cos(theta)
+        y1 = y + (i/3)*r*np.sin(theta)
+        y2 = y - (i/3)*r*np.sin(theta)
+
+        x1_coord=  x1+10*np.sin(theta)
+        y1_coord = y1+10*np.cos(theta)
+
+        x2_coord=  x2+10*np.sin(theta)
+        y2_coord = y2+10*np.cos(theta)
+
+
+        x1_index=min(range(len(X[0])), key=lambda i: abs(X[0][i]-x1_coord))   # returmns closest x and y 
+        y1_index =min(range(len(X[0])), key=lambda i: abs(Y[i][0]-y1_coord))
+
+        x2_index=min(range(len(X[0])), key=lambda i: abs(X[0][i]-x2_coord))   # returmns closest x and y 
+        y2_index =min(range(len(X[0])), key=lambda i: abs(Y[i][0]-y2_coord))
+
+        wind_speed1 = Z[y1_index][x1_index] #how meshgrids are indexed
+        wind_speed2 = Z[y2_index][x2_index]
+        speeds.append(wind_speed1)
+        speeds.append(wind_speed2)
+    # print(speeds)
+    return np.mean(speeds)
 
 def f(x_object, y_object, poly, origin):
     turbine_x = origin[0]
@@ -200,21 +234,21 @@ def power_curve(speed):
     power = 0.0676*speed**6 - 3.2433*speed**5 + 60.607*speed**4 - 565.82*speed**3 + 2830.8*speed**2 - 7083.5*speed + 6896.3
     return power
 
-def get_power(Z,coordinates,U_direction,X,Y):
+def get_power(Z,coordinates,U_direction,X,Y,r):
     power_generation_kw = []
     for i in range(0,len(coordinates)):
-        probe_x, probe_y = windspeed_probe(coordinates[i],U_direction,X,Y)
-        wind_speed = Z[probe_y][probe_x]
-        print(wind_speed)
+#-------------------------------------------------------------
+#                   Estimated Wind Speed on Probe
+        
+        wind_speed = windspeed_probe(coordinates[i],U_direction,X,Y,r,Z)
+        
+#---------------------------------------------------------------
         if wind_speed < 3 or wind_speed > 25: #cut in and cut out
             power = 0
-            print('1')
         elif wind_speed >= 3 and wind_speed <= 12.5: #power curve
             power = power_curve(wind_speed)
-            print('2')
         elif wind_speed > 12.5 and wind_speed <= 25: # max power
             power = 3450
-            print('3')
         power_generation_kw.append(power)
     return power_generation_kw
 
@@ -246,6 +280,9 @@ def main(angle):
     # "0 degrees is coming from due North."
     # "+90 degrees means the wind is coming from due East, -90 from due West"
     U_direction = float(angle)
+    V0 = float(10)
+    print('----------Simulation Information')
+
 
     r_0 = 56
 
@@ -258,7 +295,6 @@ def main(angle):
 
 
     wake_distance = 6000 # in metres
-    V0 = float(10)
 
     x = np.linspace(-1000,3000, 1000, endpoint = True) # x intervals
     y = np.linspace(-2000,2000,1000, endpoint = True) # y intervals
@@ -276,7 +312,7 @@ def main(angle):
 
     Z = jensens_factors*V0
 
-    kw_power_list = get_power(Z,coordinates,U_direction,X,Y)
+    kw_power_list = get_power(Z,coordinates,U_direction,X,Y,r_0)
 
     #wind farm AEP
 
@@ -287,7 +323,7 @@ def main(angle):
     print('\nFrom an available revenue of £'+str(f"{AEP_data[4]:,}"))
     print('\n-------------------Farm Losses------------------------')
     print('\nWhole Farm Loss: '+str(AEP_data[2])+' GWh')
-    print('\nWhole Farm Revenue Loss: £'+str(f"{AEP_data[3]:,}")+' \n\n\n')
+    print('\nWhole Farm Revenue Loss: £'+str(f"{AEP_data[3]:,}")+' \n')
     
 
     mycmap = cm.get_cmap('jet')
