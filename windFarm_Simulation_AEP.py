@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
+from numpy.linalg import norm
 import time
 import csv
 import sys
@@ -175,7 +176,7 @@ def f(x_object, y_object, poly, origin):
 
 #----------- f2 returns the array of coefficients for a turbine------------------
 #-----------x and y objects are just meshgrids for the coordinates------------------
-def f2(X, Y, coords,origin):
+def f2(X, Y, coords,origin,x1,y1,x2,y2):
     turbine_x = float(origin[0])
     turbine_y = float(origin[1])
 
@@ -190,13 +191,17 @@ def f2(X, Y, coords,origin):
     mask = Path(coords).contains_points(points).reshape(X.shape)
     result=np.ones((X.shape[0],Y.shape[0]),dtype="float32")
 
+    p1 = np.asarray((x1,y1))
+    p2=np.asarray((x2,y2))
+
     for i in range (X.shape[0]):
         for j in range (Y.shape[0]):
             point = mask[j][i]
             if point == True:
                 x = X[j][i]
                 y = Y[j][i]
-                distance = np.sqrt((x-turbine_x)**2+(y-turbine_y)**2) # should be linear distance from centre point?
+                p3 = np.asarray((x,y))
+                distance = norm(np.cross(p2-p1, p1-p3))/norm(p2-p1) #crossproduct to find downstream distance from point to turbine
                 factor = (1-((1-math.sqrt(1-Ct))/(1+(kw*distance/rd))**2))
                 result[j,i] = factor
     print('Time for solution: '+str(time.process_time() - start)+' seconds\n')
@@ -225,7 +230,7 @@ def get_array_of_jensens_factor(wake_distance,turbine_origin,U_direction,r_0, X,
 
 
     
-    Z = f2(X, Y, coords,turbine_origin)
+    Z = f2(X, Y, coords,turbine_origin,x1,y1,x2,y2)
     # Z = f(X,Y, poly, turbine_origin)
 
     return Z
@@ -296,8 +301,8 @@ def main(angle):
 
     wake_distance = 6000 # in metres
 
-    x = np.linspace(-1000,3000, 1000, endpoint = True) # x intervals
-    y = np.linspace(-2000,2000,1000, endpoint = True) # y intervals
+    x = np.linspace(-2000,2000, 500, endpoint = True) # x intervals
+    y = np.linspace(-2000,2000,500, endpoint = True) # y intervals
     X, Y = np.meshgrid(x,y)
     list_of_jensens_factors = []
 
@@ -325,13 +330,26 @@ def main(angle):
     print('\nWhole Farm Loss: '+str(AEP_data[2])+' GWh')
     print('\nWhole Farm Revenue Loss: £'+str(f"{AEP_data[3]:,}")+' \n')
     
-
+    plt.figure(1, figsize=(13,5))
+    plt.subplot(1, 2, 1)
     mycmap = cm.get_cmap('jet')
     mycmap.set_under('w')   
     plt.pcolor(X, Y, Z, shading='auto')
     plt.axis('scaled')
+    plt.xlabel('Local x-Direction /m')
+    plt.ylabel('Local y-Direction /m')
     plt.colorbar()
-    # plt.plot(X[probe_y][probe_x],Y[probe_y][probe_x], 'ro')
+    turbine_no = range(1,len(coordinates)+1)
+
+    GWh_energy_list = list(map(lambda x: x * 8760/1000000, kw_power_list))
+    
+    plt.subplot(1, 2, 2)
+    plt.xlabel('Turbine')
+    plt.title('AEP Per Turbine')
+    plt.ylabel('Yield /GWh')
+    plt.grid(color='black', linestyle='-', linewidth=0.25)
+    plt.bar( [str(int) for int in turbine_no],np.array(GWh_energy_list), color='green')
+
     
 
     # ax = Axes3D(plt.gcf())
