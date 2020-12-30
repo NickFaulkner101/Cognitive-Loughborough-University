@@ -53,7 +53,7 @@ def wake_start_points(coordinates,angle,r):
                                                                                                                         #  \      /
                                                                                                                         #   \    /
                                                                                                                         #    \  / 
-    #                                              s                                                                          ^  ^ these points rotate
+    #                                              s                                                                         ^  ^ these points rotate
     #               Let the points (x1,y1) and (x2,y2) represent the two points on edge of turbine swept area
                     # the 4 variables are affectede by cos(theta) and sin(theta) depending on whether theta is 0<t<90, 90<t<180, -90<t<0, -180<t<-90
                     # where x and y are the turbine coodrinates
