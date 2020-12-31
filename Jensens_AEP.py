@@ -65,26 +65,12 @@ def wake_start_points(coordinates,angle,r):
     y = float(coordinates[1])
     # print(type(angle))
     #sign coefficients to ensure wakes start in right position, considering cos and sin waves 
-    if (angle >= 0 and angle <= 90):
-        A = -1
-        B = 1 
-        C = 1
-        D = -1
-    elif (angle > 90 and angle <= 180):
-        A = -1
-        B = 1 
-        C = 1
-        D = -1
-    elif (angle < 0 and angle >= -90):
-        A = -1
-        B = 1 
-        C = 1
-        D = -1
-    elif (angle < -90 and angle >= -180):
-        A = -1
-        B = 1 
-        C = 1
-        D = -1
+    
+    A = -1
+    B = 1 
+    C = 1
+    D = -1
+    
     x1 = x + A*r*np.cos(theta)
     x2 = x + B*r*np.cos(theta)
     y1 = y + C*r*np.sin(theta)
@@ -110,8 +96,6 @@ def windspeed_probe(coordinates,angle,X,Y,r,Z):
     x_coord=  x+10*np.sin(theta)
     y_coord = y+10*np.cos(theta)
     
-    turbine1_x_index=min(range(len(X[0])), key=lambda i: abs(X[0][i]-x_coord))   # returmns closest x and y 
-    turbine1_y_index =min(range(len(X[0])), key=lambda i: abs(Y[i][0]-y_coord))
 
     #turbine centre
     #pick 6 points along the turbine and calculate wind speed at each point
@@ -202,7 +186,7 @@ def f2(X, Y, coords,origin,x1,y1,x2,y2):
                 y = Y[j][i]
                 p3 = np.asarray((x,y))
                 distance = norm(np.cross(p2-p1, p1-p3))/norm(p2-p1) #crossproduct to find downstream distance from point to turbine
-                factor = (1-((1-math.sqrt(1-Ct))/(1+(kw*distance/rd))**2))   #jensens model
+                factor = ((1-math.sqrt(1-Ct))/(1+(kw*distance/rd))**2)   #jensens model
                 result[j,i] = factor
     print('Time for solution: '+str(time.process_time() - start)+' seconds\n')
     return result
@@ -300,11 +284,28 @@ def wake_areas(coordinates,X,Y,wake_distance,U_direction,r_0):
                     result[j][i] = True
     return result          
 
-def wake_loss(jensens_factors,areas_in_wake): 
+def wake_loss(jensens_factors,areas_in_wake,X,Y): 
+    jensens_factors = np.asarray(jensens_factors)
+    result=np.ones((X.shape[0],Y.shape[0]),dtype="float32")
 #                           A Simple Model for Cluster Efficiency - Jensen 1978
-#--------this iterates through areas in wake and seeks the /cells which are in at least 1 turbine wake
-#--------for these cells in the wakes, it works out the energy deficit as per Jensen 1987---------------------
-    return jensens_factors
+#--------this iterates through areas in wake and seeks the grid cells which are in at least 1 turbine wake
+#--------for these cells in the wakes, it works out the energy deficit(1-V/U)^2 for multuple wakes, as per Jensen 1987---------------------
+ 
+    for i in range(0,X.shape[0]): 
+            for j in range(0,Y.shape[0]):
+                if areas_in_wake[j][i] == True: #if the grid cell is in the wake, check it out
+                    values = []
+                    for w in range(0,len(jensens_factors)):
+                        values.append(jensens_factors[w][j][i]) # these values are from each flow field calculated for each turbine,
+                                                                    # for this grid cell coordinate
+                    values = list(filter(lambda a: a != 1, values))  # get all the values than are not 1, i.e. have a wind speed deficiency  
+                    values.sort(reverse=True)               #cells = 1 should not be used in the below equation
+                    one_Z = values[0]                       #filtering out 1 is very important, as we are only interested in deficiency
+                    for jensens in range(1,len(values)): #there is an order to working out (1-V/U)^2 = (1-V1/U)^2 + (1-V2/U)^2
+                        one_Z = np.sqrt(np.square(one_Z)+np.square(values[jensens])) # this is 1-V/U
+                        
+                    result[j][i] = 1-one_Z
+    return result
         
 
         
@@ -335,12 +336,13 @@ def main(angle):
     y = np.linspace(-2000,2000,500, endpoint = True) # y intervals
     X, Y = np.meshgrid(x,y)
     list_of_jensens_factors = []
-
+    
+    
 
 #--------------This returns a grid, each element refers to whether it is in the wake
 #--------------this grid is used to calculate wind speeds for multiple turbines
     areas_in_wake = wake_areas(coordinates,X,Y,wake_distance,U_direction,r_0)
-
+    
     for i in range(0,len(coordinates)):
 
         coefficient_matrix = np.array(get_array_of_jensens_factor(wake_distance,coordinates[i],U_direction,r_0, X, Y))
@@ -350,9 +352,9 @@ def main(angle):
     for i in range(0,len(list_of_jensens_factors)):
         jensens_factors = np.multiply(jensens_factors,list_of_jensens_factors[i])
 
-    Z = jensens_factors*V0
-
-    kw_power_list = get_power(Z,coordinates,U_direction,X,Y,r_0)
+    one_Z = wake_loss(list_of_jensens_factors,areas_in_wake,X,Y) #get array of (V/U), 
+    Z = one_Z*V0                                                   #accompanying wind speeds
+    kw_power_list = get_power(Z,coordinates,U_direction,X,Y,r_0)    #get power of each turbine
 
     #wind farm AEP
 
@@ -388,8 +390,6 @@ def main(angle):
     plt.grid(color='black', linestyle='-', linewidth=0.25)
     plt.bar( [str(int) for int in turbine_no],np.array(GWh_energy_list), color='green')
 
-    plt.figure(2)
-    plt.pcolor(X, Y, areas_in_wake, shading='auto')
 
     # ax = Axes3D(plt.gcf())
     # ax.plot_surface(X,Y,Z)
