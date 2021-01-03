@@ -299,10 +299,10 @@ def wake_loss(jensens_factors,areas_in_wake,X,Y):
                         values.append(jensens_factors[w][j][i]) # these values are from each flow field calculated for each turbine,
                                                                     # for this grid cell coordinate
                     values = list(filter(lambda a: a != 1, values))  # get all the values than are not 1, i.e. have a wind speed deficiency  
-                    values.sort(reverse=True)               #cells = 1 should not be used in the below equation
+                    values.sort(reverse=False)               #cells = 1 should not be used in the below equation
                     one_Z = values[0]                       #filtering out 1 is very important, as we are only interested in deficiency
-                    for jensens in range(1,len(values)): #there is an order to working out (1-V/U)^2 = (1-V1/U)^2 + (1-V2/U)^2
-                        one_Z = np.sqrt(np.square(one_Z)+np.square(values[jensens])) # this is 1-V/U
+                    for jensens in range(1,len(values)): #work from largest to smallest, there is an order to working out (1-V/U)^2 = (1-V1/U)^2 + (1-V2/U)^2
+                        one_Z = np.sqrt(np.square(one_Z)+np.square(values[jensens])) # this is Root Sum of Squares
                         
                     result[j][i] = 1-one_Z
     return result
@@ -331,9 +331,9 @@ def main(angle):
 
 
     wake_distance = 6000 # in metres
-
-    x = np.linspace(-2000,2000, 500, endpoint = True) # x intervals
-    y = np.linspace(-2000,2000,500, endpoint = True) # y intervals
+    # discretisation
+    x = np.linspace(-2000,2000, 300, endpoint = True) # x intervals
+    y = np.linspace(-2000,2000,300, endpoint = True) # y intervals
     X, Y = np.meshgrid(x,y)
     list_of_jensens_factors = []
     
@@ -390,7 +390,8 @@ def main(angle):
     plt.grid(color='black', linestyle='-', linewidth=0.25)
     plt.bar( [str(int) for int in turbine_no],np.array(GWh_energy_list), color='green')
 
-
+    plt.figure(2)
+    plt.pcolor(X, Y, areas_in_wake, shading='auto')
     # ax = Axes3D(plt.gcf())
     # ax.plot_surface(X,Y,Z)
 
