@@ -13,6 +13,7 @@ from shapely.geometry import Point
 from shapely.geometry.polygon import Polygon
 from matplotlib.path import Path
 from matplotlib import cm
+from random import randrange
 
 
 
@@ -313,15 +314,17 @@ def wake_loss(jensens_factors,areas_in_wake,X,Y):
 
 def main(angle):
 
-    # "0 degrees is coming from due North."
-    # "+90 degrees means the wind is coming from due East, -90 from due West"
+#------------------- "0 degrees is coming from due North."---------------------------
+#------- "+90 degrees means the wind is coming from due East, -90 from due West"-----
     U_direction = float(angle)
-    V0 = float(10)
-    print('----------Simulation Information')
+    V0 = float(10) # wind speed in m/s
 
+    print('----------Starting Simulation--------')
 
-    r_0 = 56 #turbine diameter
+#--------Turbine Rotor Radius-------------
+    r_0 = 56 
 
+#-----load coordinates of turbines----
     coordinates = []
     with open('turbines.txt') as csv_file:
         csv_reader = csv.reader(csv_file, delimiter=',')
@@ -330,19 +333,19 @@ def main(angle):
             coordinates.append([row[1],row[2]])
 
 
-    wake_distance = 6000 # in metres
-    # discretisation
-    x = np.linspace(-2000,2000, 300, endpoint = True) # x intervals
-    y = np.linspace(-2000,2000,300, endpoint = True) # y intervals
+#------------flow domain settings-----------
+    wake_distance = 6000 #wake distance in metres
+
+#-----------discretisation settings
+    x = np.linspace(-2000,2000, 500, endpoint = True) # x intervals
+    y = np.linspace(-2000,2000,500, endpoint = True) # y intervals
     X, Y = np.meshgrid(x,y)
-    list_of_jensens_factors = []
-    
-    
 
 #--------------This returns a grid, each element refers to whether it is in the wake
 #--------------this grid is used to calculate wind speeds for multiple turbines
     areas_in_wake = wake_areas(coordinates,X,Y,wake_distance,U_direction,r_0)
-    
+
+    list_of_jensens_factors = []
     for i in range(0,len(coordinates)):
 
         coefficient_matrix = np.array(get_array_of_jensens_factor(wake_distance,coordinates[i],U_direction,r_0, X, Y))
@@ -373,12 +376,13 @@ def main(angle):
     plt.subplot(1, 2, 1)
     mycmap = cm.get_cmap('jet')
     mycmap.set_under('w')   
-    plt.title('Wind Farm Scalar Velocity Flow Field')
-    plt.pcolor(X, Y, Z, shading='auto')
+    plt.title('Wind Speed Flow Field')
+    plt.pcolor(X, Y, Z, shading='auto',cmap=mycmap)
     plt.axis('scaled')
     plt.xlabel('Local x-Direction /m')
     plt.ylabel('Local y-Direction /m')
-    plt.colorbar()
+    cbar = plt.colorbar()
+    cbar.set_label('Wind Speed /(m/s)')
     turbine_no = range(1,len(coordinates)+1)
 
     GWh_energy_list = list(map(lambda x: x * 8760/1000000, kw_power_list))
