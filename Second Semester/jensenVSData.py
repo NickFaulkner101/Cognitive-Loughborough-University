@@ -26,7 +26,7 @@ df_power = df_power.drop('timestamp', axis =1)
 df_curtailed = pd.read_csv("curtailed_setting.csv")
 df_curtailed.index=df_curtailed['timestamp']
 df_curtailed = df_curtailed.drop('timestamp', axis =1)
-df_curtailed = df_curtailed['O09_Grd_Prod_Pwr_InternalDerateStat']
+# df_curtailed = df_curtailed['O09_Grd_Prod_Pwr_InternalDerateStat']
 
 #power Curve load in 
 # Note that this is for the VESTAS v112 taken from a 3rd party website. 
@@ -53,8 +53,10 @@ final_df=new_new_df.merge(df_power,left_index=True,right_index=True)
 
 #Taking bottom left wind turbine, 'O09'
 
-angle_lower = 218
-angle_higher = 222
+#Taking bottom left wind turbine, 'I15'
+#46 degree bearing, 226 wind dir
+angle_lower = 224
+angle_higher = 228
 
 power_df=final_df.loc[
  
@@ -67,7 +69,8 @@ power_df=final_df.loc[
  (final_df['O09_Amb_WindDir_Abs_Avg']>=angle_lower) & #220 degrees as the turbines of interest are aligned along this plane for wind dir
  (final_df['O09_Amb_WindDir_Abs_Avg']< angle_higher)][[
      'O09_Amb_WindDir_Abs_Avg','O09_Amb_WindSpeed_Avg',
-     'N09_Amb_WindSpeed_Avg', 
+     'N09_Amb_WindSpeed_Avg',
+     'M09_Amb_WindSpeed_Avg', 
      'WindSpeed_Mean',
      'O09_Grd_Prod_Pwr_Avg',
      'N09_Grd_Prod_Pwr_Avg',
@@ -78,7 +81,10 @@ speed_df = final_df.loc[(final_df['N09_Grd_Prod_Pwr_Avg'] > 0) &
 (final_df['O09_Amb_WindDir_Abs_Avg']>=angle_lower) & 
 (final_df['O09_Amb_WindDir_Abs_Avg']< angle_higher)][['O09_Amb_WindSpeed_Avg', 'N09_Amb_WindSpeed_Avg']].copy()
 
-
+#Jensens Variables
+Ct = 0.8
+rd=56
+kw = 0.04
 
 
 x = np.linspace(0,25,26)
@@ -89,98 +95,157 @@ y = np.linspace(0,25,26)
 
 print('power_df length'+ str(len(power_df)))
 
-corrected_upstream_windspeed = []     #correcting the upstream turbine windspeeds to the powercurve
+#O09 windspeed correction via powercurve 
+corrected_O09_windspeed = []     
 for row in power_df.itertuples():
 
     if row.O09_Grd_Prod_Pwr_Avg < 3450:
         index_speed = min(range(len(power_smooth)), key=lambda i: abs(power_smooth[i]-row.O09_Grd_Prod_Pwr_Avg))
         correct_windspeed = powercurve_windspeed_new[index_speed]
         if correct_windspeed < 3:
-            corrected_upstream_windspeed.append(0)
+            corrected_O09_windspeed.append(0)
 
     if row.O09_Grd_Prod_Pwr_Avg < 3450:
         index_speed = min(range(len(power_smooth)), key=lambda i: abs(power_smooth[i]-row.O09_Grd_Prod_Pwr_Avg))
         correct_windspeed = powercurve_windspeed_new[index_speed]
-        corrected_upstream_windspeed.append(correct_windspeed)
+        corrected_O09_windspeed.append(correct_windspeed)
     if row.O09_Grd_Prod_Pwr_Avg >= 3450:
         correct_windspeed = row.O09_Amb_WindSpeed_Avg
-        corrected_upstream_windspeed.append(correct_windspeed)
+        corrected_O09_windspeed.append(correct_windspeed)
 
-print(len(corrected_upstream_windspeed))
-power_df["corrected_upstream_windspeed"] = corrected_upstream_windspeed
+print(len(corrected_O09_windspeed))
+power_df["corrected_O09_windspeed"] = corrected_O09_windspeed
 
-
-corrected_downstream_windspeed = []     #correcting the downstream turbine windspeeds to the powercurve
+#N09 windspeed correction via powercurve 
+corrected_N09_windspeed = []     
 for row in power_df.itertuples():
 
     if row.N09_Grd_Prod_Pwr_Avg < 3450:
         index_speed = min(range(len(power_smooth)), key=lambda i: abs(power_smooth[i]-row.N09_Grd_Prod_Pwr_Avg))
         correct_windspeed = powercurve_windspeed_new[index_speed]
         if correct_windspeed < 3:
-            corrected_downstream_windspeed.append(0)
+            corrected_N09_windspeed.append(0)
 
     if row.N09_Grd_Prod_Pwr_Avg < 3450:
         index_speed = min(range(len(power_smooth)), key=lambda i: abs(power_smooth[i]-row.N09_Grd_Prod_Pwr_Avg))
         correct_windspeed = powercurve_windspeed_new[index_speed]
-        corrected_downstream_windspeed.append(correct_windspeed)
+        corrected_N09_windspeed.append(correct_windspeed)
     if row.N09_Grd_Prod_Pwr_Avg >= 3450:
         correct_windspeed = row.N09_Amb_WindSpeed_Avg
-        corrected_downstream_windspeed.append(correct_windspeed)
+        corrected_N09_windspeed.append(correct_windspeed)
+
+power_df["corrected_N09_windspeed"] = corrected_N09_windspeed
 
 
-print(len(corrected_downstream_windspeed))
-print(len(corrected_upstream_windspeed))
+corrected_M09_windspeed = []     
+for row in power_df.itertuples():
 
-# power_df.to_csv(r'.\Sample.csv', index = False)
+    if row.M09_Grd_Prod_Pwr_Avg < 3450:
+        index_speed = min(range(len(power_smooth)), key=lambda i: abs(power_smooth[i]-row.M09_Grd_Prod_Pwr_Avg))
+        correct_windspeed = powercurve_windspeed_new[index_speed]
+        if correct_windspeed < 3:
+            corrected_M09_windspeed.append(0)
 
-power_df["corrected_downstream_windspeed"] = corrected_downstream_windspeed
+    if row.M09_Grd_Prod_Pwr_Avg < 3450:
+        index_speed = min(range(len(power_smooth)), key=lambda i: abs(power_smooth[i]-row.M09_Grd_Prod_Pwr_Avg))
+        correct_windspeed = powercurve_windspeed_new[index_speed]
+        corrected_M09_windspeed.append(correct_windspeed)
+    if row.M09_Grd_Prod_Pwr_Avg >= 3450:
+        correct_windspeed = row.M09_Amb_WindSpeed_Avg
+        corrected_M09_windspeed.append(correct_windspeed)
+
+power_df["corrected_M09_windspeed"] = corrected_M09_windspeed
 
 
-#Create column in dataframe for jensen predicted wind speed on N09. And predicted power
-downstream_windspeed_Jensen= []
-downstream_power = []
-Ct = 0.8
-rd=23.5
-kw = 0.04
+print(len(corrected_N09_windspeed))
+print(len(corrected_O09_windspeed))
+
+
+
+
+
+#N09 Jensen windspeed from O09 hence power prediction 
+N09_windspeed_Jensen= []
+N09_power = []
+
 turbine_distance = 778.7 #distance from O09 to N09 in metres
 for row in power_df.itertuples():
-    upstream_wind = row.corrected_upstream_windspeed
+    O09_wind = row.corrected_O09_windspeed
 
     factor = (1-((1-math.sqrt(1-Ct))/(1+(kw*turbine_distance/rd))**2))
-    downstream_wind = factor*upstream_wind
-    downstream_windspeed_Jensen.append(downstream_wind)
+    N09_wind = factor*O09_wind
+    N09_windspeed_Jensen.append(N09_wind)
 
-    index_power = min(range(len(powercurve_windspeed_new)), key=lambda i: abs(powercurve_windspeed_new[i]-downstream_wind))
-    downstream_power_value = power_smooth[index_power]
-    downstream_power.append(downstream_power_value)
+    index_power = min(range(len(powercurve_windspeed_new)), key=lambda i: abs(powercurve_windspeed_new[i]-N09_wind))
+    N09_power_value = power_smooth[index_power]
+    N09_power.append(N09_power_value)
   
-power_df["downstream_power_Jensen"] = downstream_power
-power_df["downstream_windspeed_Jensen"] = downstream_windspeed_Jensen
+power_df["N09_power_Jensen"] = N09_power
+power_df["N09_windspeed_Jensen"] = N09_windspeed_Jensen
+
+#M09 Jensen windspeed from N09 
+M09_windspeed_Jensen= []
+M09_power = []
+
+turbine_distance = 788.1 #distance from N09 to M09 in metres
+for row in power_df.itertuples():
+    N09_wind = row.corrected_N09_windspeed
+
+    factor = (1-((1-math.sqrt(1-Ct))/(1+(kw*turbine_distance/rd))**2))
+    M09_wind = factor*N09_wind
+    M09_windspeed_Jensen.append(factor)
+
+    index_power = min(range(len(powercurve_windspeed_new)), key=lambda i: abs(powercurve_windspeed_new[i]-M09_wind))
+    M09_power_value = power_smooth[index_power]
+    M09_power.append(M09_power_value)
+  
+power_df["M09_N09_Jensen_factor"] = M09_windspeed_Jensen
 
 
-#overall goal, power to wind speed, to see if the relevant wind speeds come out as the same power seen by jensens
-#1) get actual wind speed on lead turbine. power to corresponding wind speed (corrected wind speed)         TICK
-#2) apply jensens to get next downstream wind speed
-#3) work out power of next downstream turbine via power curve
-#4) compare this predicted jensen power to the actual power 
+
+#M09 Jensen windspeed from O09 
+M09_windspeed_Jensen= []
+
+turbine_distance = 788.1 #distance from O09 to M09 in metres
+for row in power_df.itertuples():
+    O09_wind = row.corrected_O09_windspeed
+
+    factor = (1-((1-math.sqrt(1-Ct))/(1+(kw*turbine_distance/rd))**2))
+    M09_wind = factor*O09_wind
+    M09_windspeed_Jensen.append(factor)
+
+    
+  
+power_df["M09_O09_Jensen_factor"] = M09_windspeed_Jensen
+
+#calculates predicted Jensen Speed on M09 via RSS Method
+Final_Jensen_Speed_M09 = []
+M09_power = []
+for row in power_df.itertuples():
+    O09_factor = row.M09_O09_Jensen_factor
+    N09_factor = row.M09_N09_Jensen_factor
+    O09_wind = row.corrected_O09_windspeed
 
 
-# windspeeds = np.linspace(0,25,26)
-# power_generation_kw = []
-# for i in range(0,len(windspeeds)):
-#     wind_speed = windspeeds[i]
-#     if wind_speed < 3 or wind_speed > 25: #cut in and cut out
-#         power = 0
-#     elif wind_speed >= 3 and wind_speed <= 12.5: #power curve
-#         power = 0.0676*wind_speed**6 - 3.2433*wind_speed**5 + 60.607*wind_speed**4 - 565.82*wind_speed**3 + 2830.8*wind_speed**2 - 7083.5*wind_speed + 6896.3
-#     elif wind_speed > 12.5 and wind_speed <= 25: # max power
-#         power = 3450
-#     power_generation_kw.append(power)
+    _M09_factor = np.sqrt(np.square(1 - O09_factor)+np.square(1 - N09_factor))  #ROOT SUM OF SQUARES
+    M09_factor = 1 - _M09_factor
+    actual_speed = M09_factor*O09_wind
+    Final_Jensen_Speed_M09.append(actual_speed) #multiply by freestream velocity
+
+    index_power = min(range(len(powercurve_windspeed_new)), key=lambda i: abs(powercurve_windspeed_new[i]-actual_speed))
+    M09_power_value = power_smooth[index_power]
+    M09_power.append(M09_power_value)
 
 
-Ct = 0.8
-rd=23.5
-kw = 0.04
+  
+power_df["M09_Final_Jensen_Speed"] = Final_Jensen_Speed_M09
+  
+power_df["M09_power_Jensen"] = M09_power
+print(power_df["M09_Final_Jensen_Speed"])
+
+
+
+
 turbine_distance = 778.7
 jensen_speed = []
 factor = (1-((1-math.sqrt(1-Ct))/(1+(kw*turbine_distance/rd))**2))
@@ -198,46 +263,46 @@ plt.ylabel('power', fontsize=14)
 plt.title('Wind Speed Distribution')
 plt.grid()
 plt.scatter(power_df['O09_Amb_WindSpeed_Avg'],power_df['O09_Grd_Prod_Pwr_Avg'],marker='x',s=1,label='Turbine Data')
-plt.scatter(power_df['corrected_upstream_windspeed'],power_df['O09_Grd_Prod_Pwr_Avg'],marker='x',color='green',s=10,label='Corrected Wind Speed Data')
+plt.scatter(power_df['corrected_O09_windspeed'],power_df['O09_Grd_Prod_Pwr_Avg'],marker='x',color='green',s=10,label='Corrected Wind Speed Data')
 plt.plot(powercurve_windspeed_new,power_smooth,color='orange',label='Power Curve')
 plt.legend(loc="upper left")
 
 
 
-# plt.figure(2)
-# plt.xlabel('Wind Speed Upstream Turbine m/s ', fontsize=12)
-# plt.xticks(fontsize= 12)
-# plt.ylabel('Wind Speed Downstream Turbine m/s', fontsize=14)
-# plt.title('Wind Turbine Speed Deficiency')
-# plt.grid()
-# plt.scatter(speed_df['O09_Amb_WindSpeed_Avg'],speed_df['N09_Amb_WindSpeed_Avg'],marker='x',s=1,label='Turbie Speed')
-# plt.plot(x,jensen_speed,color='orange',label='Jensen')
-# plt.plot(x,y,color='green',label='No Deficit')
-# plt.legend(loc="upper left")
+plt.figure(2)
+plt.xlabel('Wind Speed O09 Raw Turbine m/s ', fontsize=12)
+plt.xticks(fontsize= 12)
+plt.ylabel('Wind Speed N09 Turbine m/s', fontsize=14)
+plt.title('Wind Turbine Speed Deficiency')
+plt.grid()
+plt.scatter(speed_df['O09_Amb_WindSpeed_Avg'],speed_df['N09_Amb_WindSpeed_Avg'],marker='x',s=1,label='Turbie Speed')
+plt.plot(x,jensen_speed,color='orange',label='Jensen')
+plt.plot(x,y,color='green',label='No Deficit')
+plt.legend(loc="upper left")
 
-# plt.figure(4)
-# plt.title('Comparison of Downstream Power Values and Jensen-Based Power')
-# plt.xlabel('Wind Speed m/s ', fontsize=12)
-# plt.xticks(fontsize= 12)
-# plt.ylabel('power /kW', fontsize=14)
-# plt.grid()
-# plt.scatter(power_df['corrected_downstream_windspeed'],power_df['N09_Grd_Prod_Pwr_Avg'],marker='x',s=1,label='Turbine Data')
-# plt.scatter(power_df['downstream_windspeed_Jensen'],power_df['downstream_power_Jensen'],marker='x',s=5,color='green',label='Jensen Power')
-# plt.plot(powercurve_windspeed_new,power_smooth,color='orange',label='Power Curve')
-# plt.legend(loc="upper left")
+plt.figure(4)
+plt.title('Comparison of N09 Power Values and Jensen-Based Power')
+plt.xlabel('Wind Speed m/s ', fontsize=12)
+plt.xticks(fontsize= 12)
+plt.ylabel('power /kW', fontsize=14)
+plt.grid()
+plt.scatter(power_df['corrected_N09_windspeed'],power_df['N09_Grd_Prod_Pwr_Avg'],marker='x',s=1,label='Turbine Data')
+plt.scatter(power_df['N09_windspeed_Jensen'],power_df['N09_power_Jensen'],marker='x',s=5,color='green',label='Jensen Power')
+plt.plot(powercurve_windspeed_new,power_smooth,color='orange',label='Power Curve')
+plt.legend(loc="upper left")
 
 
 plt.figure(5)
-plt.xlabel('Wind Speed Upstream Turbine m/s ', fontsize=12)
+plt.xlabel('Wind Speed O09 Turbine m/s ', fontsize=12)
 plt.xticks(fontsize= 12)
-plt.ylabel('Wind Speed Downstream Turbine m/s', fontsize=14)
+plt.ylabel('Wind Speed N09 Turbine m/s', fontsize=14)
 plt.title('Wind Turbine Wind Speed Difference')
 plt.grid()
 
-plt.scatter(power_df["corrected_upstream_windspeed"],power_df["downstream_windspeed_Jensen"],
+plt.scatter(power_df["corrected_O09_windspeed"],power_df["N09_windspeed_Jensen"],
 marker='x',s=5, label='Jensen Windspeed Prediction')
 
-plt.scatter(power_df["corrected_upstream_windspeed"],power_df["corrected_downstream_windspeed"],
+plt.scatter(power_df["corrected_O09_windspeed"],power_df["corrected_N09_windspeed"],
 marker='x',s=5,color='green',label='(Corrected) Turbine Windspeed')
 plt.legend(loc="upper left")
 
@@ -245,39 +310,85 @@ plt.legend(loc="upper left")
 plt.figure(6)
 plt.xlabel('Upwind Turbine Power Output /kW', fontsize=14)
 plt.xticks(fontsize= 12)
-plt.ylabel('Downstream Turbine Power Output kW', fontsize=14)
+plt.ylabel('N09 Turbine Power Output kW', fontsize=14)
 plt.title('Power Relationship Between O09 and N09')
 plt.grid()
 
 plt.scatter(power_df["O09_Grd_Prod_Pwr_Avg"],power_df["N09_Grd_Prod_Pwr_Avg"],
 marker='x',s=5, label='Actual Power Relationship')
 
-plt.scatter(power_df["O09_Grd_Prod_Pwr_Avg"],power_df["downstream_power_Jensen"],
+plt.scatter(power_df["O09_Grd_Prod_Pwr_Avg"],power_df["N09_power_Jensen"],
 marker='x',s=5,color='green',label='Jensen Predicted Power Relationship')
 plt.legend(loc="upper left")
+
 
 
 plt.figure(7)
 plt.xlabel('Upwind Turbine Power Output /kW', fontsize=14)
 plt.xticks(fontsize= 12)
-plt.ylabel('Downstream Turbine Power Output kW', fontsize=14)
+plt.ylabel('N09 Turbine Power Output kW', fontsize=14)
 plt.title('Power Relationship Between O09 and M09')
+plt.grid()
+
+plt.scatter(power_df["O09_Grd_Prod_Pwr_Avg"],power_df["M09_Grd_Prod_Pwr_Avg"],
+marker='x',s=5,color='red', label='O09 and M09')
+plt.scatter(power_df["O09_Grd_Prod_Pwr_Avg"],power_df["N09_Grd_Prod_Pwr_Avg"],
+marker='x',s=5,color='green', label='O09 and N09')
+
+
+
+plt.figure(8)
+plt.xlabel('Wind Speed O09 Turbine m/s ', fontsize=12)
+plt.xticks(fontsize= 12)
+plt.ylabel('Wind Speed M09 Turbine m/s', fontsize=14)
+plt.title('Two Wakes Jensen Model')
+plt.grid()
+
+plt.scatter(power_df["corrected_O09_windspeed"],power_df["M09_Final_Jensen_Speed"],
+marker='x',s=5, label='Jensen Windspeed Prediction')
+
+plt.scatter(power_df["corrected_O09_windspeed"],power_df["corrected_M09_windspeed"],
+marker='x',s=5,color='green',label='(Corrected) Turbine Windspeed')
+plt.legend(loc="upper left")
+
+plt.figure(9)
+plt.xlabel('Upwind Turbine Power Output /kW', fontsize=14)
+plt.xticks(fontsize= 12)
+plt.ylabel('M09 Turbine Power Output kW', fontsize=14)
+plt.title('Power Relationship Between O09 and M09 (M09 in 2 Wakes)')
 plt.grid()
 
 plt.scatter(power_df["O09_Grd_Prod_Pwr_Avg"],power_df["M09_Grd_Prod_Pwr_Avg"],
 marker='x',s=5, label='Actual Power Relationship')
 
-plt.scatter(power_df["O09_Grd_Prod_Pwr_Avg"],power_df["downstream_power_Jensen"],
+plt.scatter(power_df["O09_Grd_Prod_Pwr_Avg"],power_df["M09_power_Jensen"],
 marker='x',s=5,color='green',label='Jensen Predicted Power Relationship')
 plt.legend(loc="upper left")
 
 
 
 
-#compare downstream T2 corrected windspeed measurement (p2 ----> w2) to (p1 ---> w1)  w1 vs w2 
+
+
+
+#power O09, vs jensen predicted N09 in 2 wakes
+#so,
+# 1) get M09 jensen factors from O09, 
+# 2) get M09 jensen factors from N09
+#    a) use least squares to find actual jensen factor at the point
+#    b) find speed
+
+# plt.scatter(power_df["O09_Grd_Prod_Pwr_Avg"],power_df["N09_power_Jensen"],
+# marker='x',s=5,color='green',label='Jensen Predicted Power Relationship')
+plt.legend(loc="upper left")
+
+
+
+
+#compare N09 T2 corrected windspeed measurement (p2 ----> w2) to (p1 ---> w1)  w1 vs w2 
 # compared against w1 vs jensen2
 
-#compare downstream power produced for a given windspeed
+#compare N09 power produced for a given windspeed
 
 
 
@@ -292,8 +403,8 @@ plt.show()
 
 
 #what am I comparing
-#I want to see that for a given upstream wind speed, the wind speeds for jensens prediction are the same as reality
-#and, the power output for downstream is predicted the same 
+#I want to see that for a given O09 wind speed, the wind speeds for jensens prediction are the same as reality
+#and, the power output for N09 is predicted the same 
 # ransac ?
 
 
