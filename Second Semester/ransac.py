@@ -8,13 +8,21 @@ import math
 from scipy.interpolate import make_interp_spline, BSpline
 from sklearn import linear_model, datasets
 import sys
+import csv
 
-def get_ransac(lead,behind):
+
+
+
+
+
+def get_ransac(lead,behind,angle_lower,angle_higher):
     # Load in WindSpeed Data
     df = pd.read_csv("WindSpeed_Average.csv")
     df.index=df['timestamp']
     df = df.drop('timestamp', axis =1)
     df['WindSpeed_Mean'] = df.mean(axis=1)
+
+    print('Upstream: ' + lead + ' Downstream: ' + behind + ' Wind Angle Between: ' + str(angle_lower) + ' & ' + str(angle_higher))
 
     #Load in Wind Dir Data
     df_Dir = pd.read_csv("WindDir_Data.csv")
@@ -56,29 +64,30 @@ def get_ransac(lead,behind):
     #Taking bottom left wind turbine, 'I15'
     #46 degree bearing, 226 wind dir
     # 106 degrees for h 15 to h 14, 750metre distance
-    angle_lower = 224
-    angle_higher = 228
+    angle_lower = angle_lower
+    angle_higher = angle_higher
 
     power_df=final_df.loc[
     
-    (final_df['N10_Grd_Prod_Pwr_Avg'] > 0) &   
-    (final_df['M10_Grd_Prod_Pwr_Avg'] > 0) & #this removes null values that pandas struggles with
+
+    (final_df[lead+'_Grd_Prod_Pwr_Avg'] > 0) &   
+    (final_df[behind+'_Grd_Prod_Pwr_Avg'] > 0) & #this removes null values that pandas struggles with
     
-    (final_df['N10_Grd_Prod_Pwr_InternalDerateStat']<4) & #this removes curtailed values
-    (final_df['M10_Grd_Prod_Pwr_InternalDerateStat']<4) &
-    (final_df['N10_Amb_WindDir_Abs_Avg']>=angle_lower) & #220 degrees as the turbines of interest are aligned along this plane for wind dir
-    (final_df['N10_Amb_WindDir_Abs_Avg']< angle_higher)][[
-        'N10_Grd_Prod_Pwr_Avg',
-        'M10_Grd_Prod_Pwr_Avg',
-        'N10_Amb_WindSpeed_Avg',
-        'M10_Amb_WindSpeed_Avg',
-        'N10_Amb_WindDir_Abs_Avg',
+    (final_df[lead+'_Grd_Prod_Pwr_InternalDerateStat']<4) & #this removes curtailed values
+    (final_df[behind+'_Grd_Prod_Pwr_InternalDerateStat']<4) &
+    (final_df[lead+'_Amb_WindDir_Abs_Avg']>=angle_lower) & #220 degrees as the turbines of interest are aligned along this plane for wind dir
+    (final_df[lead+'_Amb_WindDir_Abs_Avg']< angle_higher)][[
+        lead+'_Grd_Prod_Pwr_Avg',
+        behind+'_Grd_Prod_Pwr_Avg',
+        lead+'_Amb_WindSpeed_Avg',
+        behind+'_Amb_WindSpeed_Avg',
+        lead+'_Amb_WindDir_Abs_Avg',
         'WindSpeed_Mean',
         ]].copy()
 
     upstream_turbine_power = lead+'_Grd_Prod_Pwr_Avg'
     upstream_turbine_windspeed = lead+'_Amb_WindSpeed_Avg'
-    print('power_df length'+ str(len(power_df)))
+    
 
     #N10 windspeed correction via powercurve 
     corrected_Upstream_windspeed = []
@@ -137,25 +146,60 @@ def get_ransac(lead,behind):
 
     line_X = np.arange(upstream_windspeed_corrected.min(), upstream_windspeed_corrected.max())[:, np.newaxis]
     line_y_ransac = ransac.predict(line_X)
-    plt.scatter(upstream_windspeed_corrected,downstream_windspeed_corrected,
-    marker='x',s=5, label='Jensen Windspeed Prediction')
-    plt.plot(line_X, line_y_ransac, color='cornflowerblue', linewidth=2,
-            label='RANSAC regressor')
+    # plt.scatter(upstream_windspeed_corrected,downstream_windspeed_corrected,
+    # marker='x',s=5, label='Jensen Windspeed Prediction')
+    # plt.plot(line_X, line_y_ransac, color='cornflowerblue', linewidth=2,
+    #         label='RANSAC regressor')
 
-    plt.legend(loc="upper left")
+    # plt.legend(loc="upper left")
 
+    return [line_X,line_y_ransac]
 
     # print(line_X)
 
+    # plt.show()
+
+def main():
+    print('Starting RANSAC Robust Estimation...')
+    angle_lower = 224
+    angle_higher = 228
+    lead='N10'
+    behind='M10'
+
+    turbine_list_1 = []
+    # with open('turbines.txt') as csv_file:
+    with open('turbine_list_226.txt') as csv_file:
+        csv_reader = csv.reader(csv_file, delimiter=',')
+        next(csv_file)
+        for row in csv_reader:
+            turbine_list_1.append([row[0],row[1]])
+    
+    ransac_lists = []
+    for i in range(0,len(turbine_list_1)):
+        angle_lower = 224
+        angle_higher = 228
+        returned_ransac = get_ransac(turbine_list_1[i][0],turbine_list_1[i][1],angle_lower,angle_higher)
+        ransac_lists.append(returned_ransac)
+
+
+
+    # returned_list = get_ransac(lead,behind,angle_lower,angle_higher)
+    # print(returned_list)
+
+    
+    
+    for i in range(0,len(ransac_lists)):
+        plt.plot(ransac_lists[i][0], ransac_lists[i][1], color='cornflowerblue', linewidth=2,
+            label=turbine_list_1[i][0]+' & '+turbine_list_1[i][1])
+    
+    # plt.legend(loc="upper left")
+    
+    plt.grid()
     plt.show()
-
-def main(lead,behind):
-    print('test')
-    get_ransac(lead,behind)
-
+    
 
 if __name__ =='__main__':
-    main(sys.argv[1],sys.argv[2])
+    main()
 
 
 
