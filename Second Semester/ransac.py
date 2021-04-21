@@ -85,12 +85,15 @@ def get_ransac(lead,behind,angle_lower,angle_higher):
         'WindSpeed_Mean',
         ]].copy()
 
+    print('Sample size'+ str(len(power_df)))
+
     upstream_turbine_power = lead+'_Grd_Prod_Pwr_Avg'
     upstream_turbine_windspeed = lead+'_Amb_WindSpeed_Avg'
     
 
     #N10 windspeed correction via powercurve 
     corrected_Upstream_windspeed = []
+    print('Correcting upstream wind speed measurements via power curve')
     for row in power_df.itertuples(index=False):
         if getattr(row, upstream_turbine_power) < 3450:
             index_speed = min(range(len(power_smooth)), key=lambda i: abs(power_smooth[i]-getattr(row, upstream_turbine_power)))
@@ -106,7 +109,6 @@ def get_ransac(lead,behind,angle_lower,angle_higher):
             correct_windspeed = getattr(row, upstream_turbine_windspeed)
             corrected_Upstream_windspeed.append(correct_windspeed)
 
-    print(len(corrected_Upstream_windspeed))
     power_df["corrected_Upstream_windspeed"] = corrected_Upstream_windspeed
 
     #M10 windspeed correction via powercurve 
@@ -114,6 +116,8 @@ def get_ransac(lead,behind,angle_lower,angle_higher):
     downstream_turbine_power = behind+'_Grd_Prod_Pwr_Avg'
     downstream_turbine_windspeed = behind+'_Amb_WindSpeed_Avg'
     
+    print('Correcting downstream wind speed measurements via power curve')
+    print('')
     for row in power_df.itertuples():
 
         if getattr(row, downstream_turbine_power) < 3450:
@@ -132,7 +136,8 @@ def get_ransac(lead,behind,angle_lower,angle_higher):
 
     power_df["corrected_downstream_windspeed"] = corrected_downstream_windspeed
 
-    plt.figure(100)
+    # plt.figure(100)
+    print('Calculating regression...')
 
     upstream_windspeed_corrected = np.asarray(power_df['corrected_Upstream_windspeed'])
     downstream_windspeed_corrected = np.asarray(power_df['corrected_downstream_windspeed'])
@@ -141,6 +146,11 @@ def get_ransac(lead,behind,angle_lower,angle_higher):
     downstream_windspeed_corrected = downstream_windspeed_corrected.reshape(-1,1)
     ransac = linear_model.RANSACRegressor()
     ransac.fit(upstream_windspeed_corrected, downstream_windspeed_corrected)
+
+    print('RANSAC estimator coefficient: ' + str(ransac.estimator_.coef_))
+    print('')
+    print('')
+    print('')
 
 
 
@@ -161,39 +171,92 @@ def get_ransac(lead,behind,angle_lower,angle_higher):
 
 def main():
     print('Starting RANSAC Robust Estimation...')
-    angle_lower = 224
-    angle_higher = 228
-    lead='N10'
-    behind='M10'
-
-    turbine_list_1 = []
-    # with open('turbines.txt') as csv_file:
+    print('')
+    
+    turbine_list_226 = []
+    # Load in 226 Degrees
     with open('turbine_list_226.txt') as csv_file:
         csv_reader = csv.reader(csv_file, delimiter=',')
         next(csv_file)
         for row in csv_reader:
-            turbine_list_1.append([row[0],row[1]])
+            turbine_list_226.append([row[0],row[1]])
     
+    #get RANSACs for 226 degrees
     ransac_lists = []
-    for i in range(0,len(turbine_list_1)):
+    for i in range(0,len(turbine_list_226)):
         angle_lower = 224
         angle_higher = 228
-        returned_ransac = get_ransac(turbine_list_1[i][0],turbine_list_1[i][1],angle_lower,angle_higher)
+        returned_ransac = get_ransac(turbine_list_226[i][0],turbine_list_226[i][1],angle_lower,angle_higher)
         ransac_lists.append(returned_ransac)
 
+
+    turbine_list_106 = []
+    # Load in 106 Degrees
+    with open('turbine_list_106.txt') as csv_file:
+        csv_reader = csv.reader(csv_file, delimiter=',')
+        next(csv_file)
+        for row in csv_reader:
+            turbine_list_106.append([row[0],row[1]])
+    
+    #get RANSACs for 106 degrees
+    ransac_lists_106 = []
+    for i in range(0,len(turbine_list_106)):
+        angle_lower = 104
+        angle_higher = 106
+        returned_ransac = get_ransac(turbine_list_106[i][0],turbine_list_106[i][1],angle_lower,angle_higher)
+        ransac_lists_106.append(returned_ransac)
+
+    turbine_list_46 = []
+    # Load in 46 Degrees
+    with open('turbine_list_46.txt') as csv_file:
+        csv_reader = csv.reader(csv_file, delimiter=',')
+        next(csv_file)
+        for row in csv_reader:
+            turbine_list_46.append([row[0],row[1]])
+    
+    #get RANSACs for 46 degrees
+    ransac_lists_46 = []
+    for i in range(0,len(turbine_list_46)):
+        angle_lower = 44
+        angle_higher = 46
+        returned_ransac = get_ransac(turbine_list_46[i][0],turbine_list_46[i][1],angle_lower,angle_higher)
+        ransac_lists_46.append(returned_ransac)
 
 
     # returned_list = get_ransac(lead,behind,angle_lower,angle_higher)
     # print(returned_list)
 
     
-    
+    #plot 226 degree turbines
     for i in range(0,len(ransac_lists)):
         plt.plot(ransac_lists[i][0], ransac_lists[i][1], color='cornflowerblue', linewidth=2,
-            label=turbine_list_1[i][0]+' & '+turbine_list_1[i][1])
+            label=turbine_list_226[i][0]+' & '+turbine_list_226[i][1])
+    
+    #plot 106 degree turbines
+    for i in range(0,len(ransac_lists_106)):
+        plt.plot(ransac_lists_106[i][0], ransac_lists_106[i][1], color='darkmagenta', linewidth=2,
+            label=turbine_list_106[i][0]+' & '+turbine_list_106[i][1])
+    
+    #plot 46 degree turbines
+    for i in range(0,len(ransac_lists_46)):
+        plt.plot(ransac_lists_46[i][0], ransac_lists_46[i][1], color='orangered', linewidth=2,
+            label=turbine_list_46[i][0]+' & '+turbine_list_46[i][1])
     
     # plt.legend(loc="upper left")
-    
+    plt.xlabel("Upstream Wind Turbine Corrected Wind Speed (m/s)")
+    plt.ylabel("Downstream Wind Turbine Corrected Wind Speed (m/s)")
+    plt.title("RANSAC for 30 Turbine Wake Single-Wake Relationships")
+
+
+    import matplotlib.patches as mpatches
+
+    blue_patch = mpatches.Patch(color='cornflowerblue', label='South West Wind Dir')
+    magenta_patch = mpatches.Patch(color='darkmagenta', label='South East Wind Dir')
+    orange_patch = mpatches.Patch(color='orangered', label='North East')
+    plt.legend(handles=[blue_patch,magenta_patch,orange_patch])
+
+
+
     plt.grid()
     plt.show()
     
