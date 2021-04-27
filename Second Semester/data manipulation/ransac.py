@@ -1,0 +1,391 @@
+# 1) Understand RANSAC, do a ransac
+# 2) compare ransac to the 
+
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import math
+from scipy.interpolate import make_interp_spline, BSpline
+from sklearn import linear_model, datasets
+import sys
+import csv
+import os
+
+
+
+
+
+
+def get_ransac(lead,behind,angle_lower,angle_higher):
+    # Load in WindSpeed Data
+    df = pd.read_csv("WindSpeed_Average.csv")
+    df.index=df['timestamp']
+    df = df.drop('timestamp', axis =1)
+    df['WindSpeed_Mean'] = df.mean(axis=1)
+
+    print('Upstream: ' + lead + ' Downstream: ' + behind + ' Wind Angle Between: ' + str(angle_lower) + ' & ' + str(angle_higher))
+
+    #Load in Wind Dir Data
+    df_Dir = pd.read_csv("WindDir_Data.csv")
+    df_Dir.index=df_Dir['timestamp']
+    df_Dir = df_Dir.drop('timestamp', axis =1)
+
+    #Load in Wind Power Data
+    df_power = pd.read_csv("power.csv")
+    df_power.index=df_power['timestamp']
+    df_power = df_power.drop('timestamp', axis =1)
+
+    #Load In Curtailed Data
+    # Note at the moment it just filters when N10 is curtailed.
+    df_curtailed = pd.read_csv("curtailed_setting.csv")
+    df_curtailed.index=df_curtailed['timestamp']
+    df_curtailed = df_curtailed.drop('timestamp', axis =1)
+
+    #power Curve load in 
+    # Note that this is for the VESTAS v112 taken from a 3rd party website. 
+    # This splices existing data points into a few hundred more points
+    powercurve_windspeed= np.array([3,3.5,4,4.5,5,5.5,6,6.5,7,7.5,8,8.5,9,9.5,10,10.5,11,11.5,12,12.5])
+    powercurve_windspeed_new = np.linspace(powercurve_windspeed.min(), powercurve_windspeed.max(), 3000)  
+    powercurve_power = [7,53,123,208,309,427,567,732,927,1149,1401,1688,2006,2348,2693,3011,3252,3388,3436,3448,3450]
+
+    spl = make_interp_spline(powercurve_windspeed, powercurve_power, k=1)  # type: BSpline
+    #powercurve load in
+    power_smooth = spl(powercurve_windspeed_new)
+    # plt.figure(3)
+    # plt.plot(powercurve_windspeed_new, power_smooth,label='New')
+    # plt.legend(loc="upper left")
+
+    #Merge Dataframes
+    new_df=df.merge(df_Dir,left_index=True,right_index=True)
+    new_new_df=new_df.merge(df_curtailed,left_index=True,right_index=True)
+    final_df=new_new_df.merge(df_power,left_index=True,right_index=True)
+
+    #Taking bottom left wind turbine, 'N10'
+
+    #Taking bottom left wind turbine, 'I15'
+    #46 degree bearing, 226 wind dir
+    # 106 degrees for h 15 to h 14, 750metre distance
+    angle_lower = angle_lower
+    angle_higher = angle_higher
+
+    power_df=final_df.loc[
+    
+
+    (final_df[lead+'_Grd_Prod_Pwr_Avg'] > 0) &   
+    (final_df[behind+'_Grd_Prod_Pwr_Avg'] > 0) & #this removes null values that pandas struggles with
+    
+    (final_df[lead+'_Grd_Prod_Pwr_InternalDerateStat']<4) & #this removes curtailed values
+    (final_df[behind+'_Grd_Prod_Pwr_InternalDerateStat']<4) &
+    (final_df[lead+'_Amb_WindDir_Abs_Avg']>=angle_lower) & #220 degrees as the turbines of interest are aligned along this plane for wind dir
+    (final_df[lead+'_Amb_WindDir_Abs_Avg']< angle_higher)][[
+        lead+'_Grd_Prod_Pwr_Avg',
+        behind+'_Grd_Prod_Pwr_Avg',
+        lead+'_Amb_WindSpeed_Avg',
+        behind+'_Amb_WindSpeed_Avg',
+        lead+'_Amb_WindDir_Abs_Avg',
+        'WindSpeed_Mean',
+        ]].copy()
+
+    print('Sample size'+ str(len(power_df)))
+
+    upstream_turbine_power = lead+'_Grd_Prod_Pwr_Avg'
+    upstream_turbine_windspeed = lead+'_Amb_WindSpeed_Avg'
+    
+
+    #N10 windspeed correction via powercurve 
+    corrected_Upstream_windspeed = []
+    print('Correcting upstream wind speed measurements via power curve')
+    for row in power_df.itertuples(index=False):
+        if getattr(row, upstream_turbine_power) < 3450:
+            index_speed = min(range(len(power_smooth)), key=lambda i: abs(power_smooth[i]-getattr(row, upstream_turbine_power)))
+            correct_windspeed = powercurve_windspeed_new[index_speed]
+            if correct_windspeed < 3:
+                corrected_Upstream_windspeed.append(0)
+
+        if getattr(row, upstream_turbine_power) < 3450:
+            index_speed = min(range(len(power_smooth)), key=lambda i: abs(power_smooth[i]-getattr(row, upstream_turbine_power)))
+            correct_windspeed = powercurve_windspeed_new[index_speed]
+            corrected_Upstream_windspeed.append(correct_windspeed)
+        if getattr(row, upstream_turbine_power) >= 3450:
+            correct_windspeed = getattr(row, upstream_turbine_windspeed)
+            corrected_Upstream_windspeed.append(correct_windspeed)
+
+    power_df["corrected_Upstream_windspeed"] = corrected_Upstream_windspeed
+
+    #M10 windspeed correction via powercurve 
+    corrected_downstream_windspeed = []     
+    downstream_turbine_power = behind+'_Grd_Prod_Pwr_Avg'
+    downstream_turbine_windspeed = behind+'_Amb_WindSpeed_Avg'
+    
+    print('Correcting downstream wind speed measurements via power curve')
+    print('')
+    for row in power_df.itertuples():
+
+        if getattr(row, downstream_turbine_power) < 3450:
+            index_speed = min(range(len(power_smooth)), key=lambda i: abs(power_smooth[i]-getattr(row, downstream_turbine_power)))
+            correct_windspeed = powercurve_windspeed_new[index_speed]
+            if correct_windspeed < 3:
+                corrected_downstream_windspeed.append(0)
+
+        if getattr(row, downstream_turbine_power) < 3450:
+            index_speed = min(range(len(power_smooth)), key=lambda i: abs(power_smooth[i]-getattr(row, downstream_turbine_power)))
+            correct_windspeed = powercurve_windspeed_new[index_speed]
+            corrected_downstream_windspeed.append(correct_windspeed)
+        if getattr(row, downstream_turbine_power) >= 3450:
+            correct_windspeed = getattr(row, downstream_turbine_windspeed)
+            corrected_downstream_windspeed.append(correct_windspeed)
+
+    power_df["corrected_downstream_windspeed"] = corrected_downstream_windspeed
+
+    # plt.figure(100)
+    print('Calculating regression...')
+
+    upstream_windspeed_corrected = np.asarray(power_df['corrected_Upstream_windspeed'])
+    downstream_windspeed_corrected = np.asarray(power_df['corrected_downstream_windspeed'])
+
+    upstream_windspeed_corrected = upstream_windspeed_corrected.reshape(-1,1)
+    downstream_windspeed_corrected = downstream_windspeed_corrected.reshape(-1,1)
+    ransac = linear_model.RANSACRegressor()
+    ransac.fit(upstream_windspeed_corrected, downstream_windspeed_corrected)
+
+    print('RANSAC estimator coefficient: ' + str(ransac.estimator_.coef_))
+    print('')
+    print('')
+    print('')
+
+# just want to append the raw x and y values (the upstream values etc)
+
+    line_X = np.arange(upstream_windspeed_corrected.min(), upstream_windspeed_corrected.max())[:, np.newaxis]
+    line_y_ransac = ransac.predict(line_X)
+    # plt.scatter(upstream_windspeed_corrected,downstream_windspeed_corrected,
+    # marker='x',s=5, label='Jensen Windspeed Prediction')
+    # plt.plot(line_X, line_y_ransac, color='cornflowerblue', linewidth=2,
+    #         label='RANSAC regressor')
+
+    # plt.legend(loc="upper left")
+
+    return [line_X,line_y_ransac,upstream_windspeed_corrected,downstream_windspeed_corrected]
+
+    # print(line_X)
+
+    # plt.show()
+
+def save(path,file,name):
+    
+    name = str(name)
+
+    np.savez(name,array=file)
+    
+    # os.makedirs(str(path),exist_ok=True)
+    # np.savetxt(str(path)+"/"+str(name)+".csv", file, delimiter=",",fmt='%s')
+
+    
+
+def main():
+    print('Starting RANSAC Robust Estimation...')
+    print('')
+    version = '1'
+
+    upstream_array = []
+    downstream_array = []
+    
+    turbine_list_226 = []
+    # Load in 226 Degrees
+    with open('turbine_list_226.txt') as csv_file:
+        csv_reader = csv.reader(csv_file, delimiter=',')
+        next(csv_file)
+        for row in csv_reader:
+            turbine_list_226.append([row[0],row[1]])
+    
+    #get RANSACs for 226 degrees
+    ransac_lists = []
+    saved_list_226 = []
+    for i in range(0,len(turbine_list_226)):
+        angle_lower = 224
+        angle_higher = 228
+        returned_ransac = get_ransac(turbine_list_226[i][0],turbine_list_226[i][1],angle_lower,angle_higher)
+        ransac_lists.append(returned_ransac)
+        saved_list_226.append(returned_ransac)
+        upstream_array.extend(returned_ransac[2])
+        downstream_array.extend(returned_ransac[3])
+        # save(path,file,'226_degree'):
+        # make a new list for each angle direction, append to each
+
+    turbine_list_106 = []
+    # Load in 106 Degrees
+    with open('turbine_list_106.txt') as csv_file:
+        csv_reader = csv.reader(csv_file, delimiter=',')
+        next(csv_file)
+        for row in csv_reader:
+            turbine_list_106.append([row[0],row[1]])
+    
+    #get RANSACs for 106 degrees
+    ransac_lists_106 = []
+    saved_list_106 = []
+    for i in range(0,len(turbine_list_106)):
+        angle_lower = 104
+        angle_higher = 106
+        returned_ransac = get_ransac(turbine_list_106[i][0],turbine_list_106[i][1],angle_lower,angle_higher)
+        ransac_lists_106.append(returned_ransac)
+        upstream_array.extend(returned_ransac[2])
+        saved_list_106.append(returned_ransac)
+        downstream_array.extend(returned_ransac[3])
+
+    turbine_list_46 = []
+    # Load in 46 Degrees
+    with open('turbine_list_46.txt') as csv_file:
+        csv_reader = csv.reader(csv_file, delimiter=',')
+        next(csv_file)
+        for row in csv_reader:
+            turbine_list_46.append([row[0],row[1]])
+    
+    #get RANSACs for 46 degrees
+    ransac_lists_46 = []
+    saved_list_46 = []
+    for i in range(0,len(turbine_list_46)):
+        angle_lower = 44
+        angle_higher = 46
+        returned_ransac = get_ransac(turbine_list_46[i][0],turbine_list_46[i][1],angle_lower,angle_higher)
+        ransac_lists_46.append(returned_ransac)
+        saved_list_46.append(returned_ransac)
+        upstream_array.extend(returned_ransac[2])
+        downstream_array.extend(returned_ransac[3])
+
+    #save data for rapid graphing later
+
+    path = './saved_data'+version
+
+    save(path,saved_list_226,'226_degree')
+    save(path,saved_list_106,'106_degree')
+    save(path,saved_list_46,'46_degree')
+        # make a new list for each angle direction, append to each
+
+
+    Ct = 0.8
+    rd=56
+    kw = 0.04
+    turbine_distance = 778.7
+    jensen_speed = []
+    factor = (1-((1-math.sqrt(1-Ct))/(1+(kw*turbine_distance/rd))**2))
+    x = np.linspace(0,25,26)
+    
+    for i in range(0,len(x)):
+    
+        speed_deficit = factor*x[i]
+        jensen_speed.append(speed_deficit)
+
+    # returned_list = get_ransac(lead,behind,angle_lower,angle_higher)
+    # print(returned_list)
+
+    
+
+   
+
+    
+    #plot 226 degree turbines
+    for i in range(0,len(ransac_lists)):
+        plt.plot(ransac_lists[i][0], ransac_lists[i][1], color='cornflowerblue', linewidth=2,
+            label=turbine_list_226[i][0]+' & '+turbine_list_226[i][1])
+    
+    #plot 106 degree turbines
+    for i in range(0,len(ransac_lists_106)):
+        plt.plot(ransac_lists_106[i][0], ransac_lists_106[i][1], color='darkmagenta', linewidth=2,
+            label=turbine_list_106[i][0]+' & '+turbine_list_106[i][1])
+    
+    #plot 46 degree turbines
+    for i in range(0,len(ransac_lists_46)):
+        plt.plot(ransac_lists_46[i][0], ransac_lists_46[i][1], color='orangered', linewidth=2,
+            label=turbine_list_46[i][0]+' & '+turbine_list_46[i][1])
+    
+    # plt.legend(loc="upper left")
+    plt.xlabel("Upstream Wind Turbine Corrected Wind Speed (m/s)")
+    plt.ylabel("Downstream Wind Turbine Corrected Wind Speed (m/s)")
+    plt.title("RANSAC for 30 Turbine Wake Single-Wake Relationships")
+
+
+    import matplotlib.patches as mpatches
+
+    blue_patch = mpatches.Patch(color='cornflowerblue', label='South West Wind Dir')
+    magenta_patch = mpatches.Patch(color='darkmagenta', label='South East Wind Dir')
+    orange_patch = mpatches.Patch(color='orangered', label='North East')
+    black = mpatches.Patch(color='black', label='Jensen Prediction')
+    plt.legend(handles=[blue_patch,magenta_patch,orange_patch,black])
+    plt.plot(x,jensen_speed,color='black')
+
+    # create general RANSAC
+
+    upstream_array = np.array(upstream_array)
+    downstream_array = np.array(downstream_array)
+
+    save(path,upstream_array,'upstream_array')
+    save(path,downstream_array,'downstream_array')
+
+    
+
+
+
+
+    ransac = linear_model.RANSACRegressor()
+    ransac.fit(upstream_array, downstream_array)
+
+    general_ransac_x = np.arange(upstream_array.min(), upstream_array.max())[:, np.newaxis]
+    general_ransac_y = ransac.predict(general_ransac_x)
+
+    plt.plot(general_ransac_x, general_ransac_y, color='violet', linewidth=5,
+         label='RANSAC regressor')
+    
+
+
+    plt.grid()
+    plt.show()
+    
+
+if __name__ =='__main__':
+    main()
+
+
+
+
+
+# what to do:
+# 1) assume all similar distances
+# 2) List of turbines to do should be arond 30 for that probability law
+
+# 226 degrees bearing
+# J02 I02
+# K03 J03
+# L04 L04
+# L05 K05
+# N06 M06
+# O09 N09
+# N10 M10 
+# K11 J11
+# K12 J12
+# K13 J13
+# J14 I14
+# I15 H15
+
+# 106 degree bearing
+# A10 A09
+# B10 B09
+# C12 C11
+# D13 D12
+# E14 E13
+# F15 F14
+# G15 G14
+# H15 H14
+# I15 I14
+# J14 J13
+# K13 K12
+# L10 L09
+# M10 M09
+# N10 N09
+
+# 46 degrees
+# B07 C07
+# A08 B08
+# A09 B09
+# A10 B10
+# C11 D11
+# C12 D12
+# D13 E13
