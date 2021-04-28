@@ -26,12 +26,12 @@ def get_ct_value(speed):
         #modified values
         windspeed_values= np.array([3,3.5,4,4.5,5,5.5,6,6.5,7,7.5,8,8.5,9,9.5,10,10.5,11,11.5,12,12.5,13,13.5,14,14.5,15,15.5,16,16.5,17,17.5,18,18.5,19,19.5,20,20.5,21,21.5,22,22.5,23,23.5,24,24.5,25])
         windspeed_values_new = np.linspace(windspeed_values.min(), windspeed_values.max(), 100)  
-        # ctvalues = [0.691,0.685,0.665,0.639,0.640,0.640,0.634,0.627,0.620,0.612,0.603,0.601,0.696,0.684,0.53,0.698,0.627,0.546,0.469,0.403,0.391,0.350,0.3,0.355,0.219,0.298,0.280,0.264,0.250,0.238,0.227,0.217,0.208,0.200,0.193,0.187,0.181,0.177,0.172,0.168,0.164,0.160,0.157,0.154,0.151]
+        ctvalues = [0.691,0.685,0.665,0.639,0.640,0.640,0.634,0.627,0.620,0.612,0.603,0.601,0.696,0.684,0.53,0.698,0.627,0.546,0.469,0.403,0.391,0.350,0.3,0.355,0.219,0.298,0.280,0.264,0.250,0.238,0.227,0.217,0.208,0.200,0.193,0.187,0.181,0.177,0.172,0.168,0.164,0.160,0.157,0.154,0.151]
 
         #original actual turbine values
         # windspeed_values= np.array([3,3.5,4,4.5,5,5.5,6,6.5,7,7.5,8,8.5,9,9.5,10,10.5,11,11.5,12,12.5,13,13.5,14,14.5,15,15.5,16,16.5,17,17.5,18,18.5,19,19.5,20,20.5,21,21.5,22,22.5,23,23.5,24,24.5,25])
         # windspeed_values_new = np.linspace(windspeed_values.min(), windspeed_values.max(), 100)  
-        ctvalues = [0.891,0.885,0.865,0.839,0.840,0.840,0.834,0.827,0.820,0.812,0.803,0.801,0.796,0.784,0.753,0.698,0.627,0.546,0.469,0.403,0.351,0.310,0.275,0.245,0.219,0.198,0.180,0.164,0.150,0.138,0.127,0.117,0.108,0.100,0.093,0.087,0.081,0.077,0.072,0.068,0.064,0.060,0.057,0.054,0.051]
+        # ctvalues = [0.891,0.885,0.865,0.839,0.840,0.840,0.834,0.827,0.820,0.812,0.803,0.801,0.796,0.784,0.753,0.698,0.627,0.546,0.469,0.403,0.351,0.310,0.275,0.245,0.219,0.198,0.180,0.164,0.150,0.138,0.127,0.117,0.108,0.100,0.093,0.087,0.081,0.077,0.072,0.068,0.064,0.060,0.057,0.054,0.051]
 
 
         spl = make_interp_spline(windspeed_values, ctvalues, k=1)  # type: BSpline
@@ -204,52 +204,82 @@ upstream_power_226 = np.load('226_power_up_2wakes.npz',allow_pickle=True)['array
 upstream_power_46 = np.load('46_power_up_2wakes.npz',allow_pickle=True)['array']
 upstream_power_106 = np.load('106_power_up_2wakes.npz',allow_pickle=True)['array']
 
-downstream_power_106 = np.load('106_power_up_2wakes.npz',allow_pickle=True)['array']
-downstream_power_46 = np.load('46_power_up_2wakes.npz',allow_pickle=True)['array']
-downstream_power_226 = np.load('226_power_up_2wakes.npz',allow_pickle=True)['array']
+downstream_power_106 = np.load('106_power_down_2wakes.npz',allow_pickle=True)['array']
+downstream_power_46 = np.load('46_power_down_2wakes.npz',allow_pickle=True)['array']
+downstream_power_226 = np.load('226_power_down_2wakes.npz',allow_pickle=True)['array']
 
 
 jensen_x_axis = np.load('jensen_power_x_2wakes.npz',allow_pickle=True)['array']
 jensen_y_axis = np.load('jensen_power_y_2wakes.npz',allow_pickle=True)['array']
 
 
+#for each point of upwind wind speed, get the corresponding predicted down wind windspeed (graph 1 of predicted wind speed vs actual)
+# for each predicted wind speed, map this to a power. and plot this power as downwind power (graph 2, upwind power vs downind (actual and predicted via Jensen))
+
+
+
+upstream_power = []
+downstream_power = []
+
+for i in range(0,len(upstream_power_106)):
+
+    print('pump action yoghurt rifle')
+    upstream_power.extend(upstream_power_106[i])
+    downstream_power.extend(downstream_power_106[i])
+
+# for i in range(0,len(upstream_power_46)):
+
+#     print('2nd')
+#     upstream_power.extend(upstream_power_46[i])
+#     downstream_power.extend(downstream_power_46[i])
+
+# for i in range(0,len(upstream_power_226)):
+
+#     print('pump action yoghurt rifle')
+#     upstream_power.extend(upstream_power_226[i])
+#     downstream_power.extend(downstream_power_226[i])
+
+
+# upstream_power.extend(upstream_power_106)
+# upstream_power.extend(upstream_power_226)
+# upstream_power.extend(upstream_power_46)
+
+# downstream_power.extend(downstream_power_106)
+# downstream_power.extend(downstream_power_226)
+# downstream_power.extend(downstream_power_46)
+
+print('')
+# print(upstream_power_106[0])
+
+
+upstream_power = np.array(upstream_power)
+downstream_power = np.array(downstream_power)
+
+
 upstream_power = []
 downstream_power = []
 
 
-for i in range(0,len(upstream_power_106)):
-    upstream_power.extend(upstream_power_106[i])
-
-for i in range(0,len(upstream_power_46)):
-    upstream_power.extend(upstream_power_46[i])
-
-for i in range(0,len(upstream_power_226)):
-    upstream_power.extend(upstream_power_226[i])
-
-
-for i in range(0,len(downstream_power_106)):
-    downstream_power.extend(downstream_power_106[i])
-
-for i in range(0,len(downstream_power_46)):
-    downstream_power.extend(downstream_power_46[i])
-
-for i in range(0,len(downstream_power_226)):
-    downstream_power.extend(downstream_power_226[i])
-
-
-
-
-
-# upstream_power = np.array(upstream_power)
-# downstream_power = np.array(downstream_power)
-
-
-
-
-
 plt.figure(500)
-# plt.scatter(np.array(upstream_power_106),np.array(downstream_power_106),s=0.5,label="Turbine Power Data")
-plt.plot(jensen_x_axis,jensen_y_axis,color='black', linewidth=4,label="Jensen Power")
+
+
+for i in range(0,len(lists_46)):
+        plt.scatter(lists_46[i][4], lists_46[i][5], color='orangered', s=1,label='46 Degrees Data')
+        upstream_power.extend(lists_46[i][4])
+        downstream_power.extend(lists_46[i][5])
+        
+
+for i in range(0,len(lists_226)):
+        plt.scatter(lists_226[i][4], lists_226[i][5], color='cornflowerblue', s=1,label='226 Degrees Data')
+        upstream_power.extend(lists_226[i][4])
+        downstream_power.extend(lists_226[i][5])
+
+for i in range(0,len(lists_106)):
+        plt.scatter(lists_106[i][4], lists_106[i][5], color='darkmagenta', s=1,label='106 Degrees Data')
+        upstream_power.extend(lists_106[i][4])
+        downstream_power.extend(lists_106[i][5])
+
+
 # plt.plot(x,jensen_speed,color='red', linewidth=4,label="Jensen Fit")
 # plt.plot(x,single_wake_data,color='red', linewidth=4,label="Jensen Fit")
 plt.xlabel("Upstream Wind Turbine Power (kW)")
@@ -259,7 +289,19 @@ plt.legend(loc="upper left")
 
 plt.grid()
 
+
+plt.figure(5000)
+
+
+plt.scatter(upstream_power,downstream_power,s=0.5,label="Turbine Power Data")
+plt.plot(jensen_x_axis,jensen_y_axis,color='black', linewidth=4,label="Jensen Power")
+plt.xlabel("Upstream Wind Turbine Power (kW)")
+plt.ylabel("Downstream Wind Turbine power (kW)")
+plt.title("Upstream Vs Downstream Power for turbine in 2 wakes")
+plt.legend(loc="upper left")
+
 plt.show()
+
 
 
 

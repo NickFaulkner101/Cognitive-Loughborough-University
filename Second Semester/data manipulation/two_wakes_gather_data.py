@@ -164,7 +164,7 @@ def get_ransac(lead,behind,angle_lower,angle_higher):
 
     # plt.legend(loc="upper left")
 
-    return [line_X,line_y_ransac,upstream_windspeed_corrected,downstream_windspeed_corrected,power_df[upstream_turbine_power],power_df[downstream_turbine_power]]
+    return [line_X,line_y_ransac,upstream_windspeed_corrected,downstream_windspeed_corrected,np.asarray(power_df[upstream_turbine_power]),np.asarray(power_df[downstream_turbine_power])]
 
     # print(line_X)
 
@@ -184,12 +184,12 @@ def get_ct_value(speed):
         #modified values
         windspeed_values= np.array([3,3.5,4,4.5,5,5.5,6,6.5,7,7.5,8,8.5,9,9.5,10,10.5,11,11.5,12,12.5,13,13.5,14,14.5,15,15.5,16,16.5,17,17.5,18,18.5,19,19.5,20,20.5,21,21.5,22,22.5,23,23.5,24,24.5,25])
         windspeed_values_new = np.linspace(windspeed_values.min(), windspeed_values.max(), 100)  
-        # ctvalues = [0.691,0.685,0.665,0.639,0.640,0.640,0.634,0.627,0.620,0.612,0.603,0.601,0.696,0.684,0.53,0.698,0.627,0.546,0.469,0.403,0.391,0.350,0.3,0.355,0.219,0.298,0.280,0.264,0.250,0.238,0.227,0.217,0.208,0.200,0.193,0.187,0.181,0.177,0.172,0.168,0.164,0.160,0.157,0.154,0.151]
+        ctvalues = [0.691,0.685,0.665,0.639,0.640,0.640,0.634,0.627,0.620,0.612,0.603,0.601,0.696,0.684,0.53,0.698,0.627,0.546,0.469,0.403,0.391,0.350,0.3,0.355,0.219,0.298,0.280,0.264,0.250,0.238,0.227,0.217,0.208,0.200,0.193,0.187,0.181,0.177,0.172,0.168,0.164,0.160,0.157,0.154,0.151]
 
         #original actual turbine values
         # windspeed_values= np.array([3,3.5,4,4.5,5,5.5,6,6.5,7,7.5,8,8.5,9,9.5,10,10.5,11,11.5,12,12.5,13,13.5,14,14.5,15,15.5,16,16.5,17,17.5,18,18.5,19,19.5,20,20.5,21,21.5,22,22.5,23,23.5,24,24.5,25])
         # windspeed_values_new = np.linspace(windspeed_values.min(), windspeed_values.max(), 100)  
-        ctvalues = [0.891,0.885,0.865,0.839,0.840,0.840,0.834,0.827,0.820,0.812,0.803,0.801,0.796,0.784,0.753,0.698,0.627,0.546,0.469,0.403,0.351,0.310,0.275,0.245,0.219,0.198,0.180,0.164,0.150,0.138,0.127,0.117,0.108,0.100,0.093,0.087,0.081,0.077,0.072,0.068,0.064,0.060,0.057,0.054,0.051]
+        # ctvalues = [0.891,0.885,0.865,0.839,0.840,0.840,0.834,0.827,0.820,0.812,0.803,0.801,0.796,0.784,0.753,0.698,0.627,0.546,0.469,0.403,0.351,0.310,0.275,0.245,0.219,0.198,0.180,0.164,0.150,0.138,0.127,0.117,0.108,0.100,0.093,0.087,0.081,0.077,0.072,0.068,0.064,0.060,0.057,0.054,0.051]
 
 
         spl = make_interp_spline(windspeed_values, ctvalues, k=1)  # type: BSpline
@@ -244,8 +244,8 @@ def main():
 
         downstream_array.extend(returned_ransac[3])
 
-        power_226_upstream.extend(returned_ransac[4])
-        power_226_downstream.extend(returned_ransac[5])
+        power_226_upstream.append(returned_ransac[4])
+        power_226_downstream.append(returned_ransac[5])
 
     
 
@@ -281,8 +281,8 @@ def main():
         windspeed_106_upstream.append(returned_ransac[2])
         windspeed_106_downstream.append(returned_ransac[3])
 
-        power_106_upstream.extend(returned_ransac[4])
-        power_106_downstream.extend(returned_ransac[5])
+        power_106_upstream.append(returned_ransac[4])
+        power_106_downstream.append(returned_ransac[5])
 
     turbine_list_46 = []
     # Load in 46 Degrees
@@ -312,23 +312,29 @@ def main():
         windspeed_46_upstream.append(returned_ransac[2])
         windspeed_46_downstream.append(returned_ransac[3])
 
-        power_46_upstream.extend(returned_ransac[4])
-        power_46_downstream.extend(returned_ransac[5])
+        power_46_upstream.append(returned_ransac[4])
+        power_46_downstream.append(returned_ransac[5])
 
     #save data for rapid graphing later
 
     path = './saved_data'
 
+
+    plt.figure(600)
+
+    plt.scatter(power_226_upstream,power_226_downstream)
+    plt.show()
+
     save(path,saved_list_226,'226_degree_2wakes')
     save(path,saved_list_106,'106_degree_2wakes')
     save(path,saved_list_46,'46_degree_2wakes')
 
-    save(path,power_226_upstream,'226_power_up_2wakes')
-    save(path,power_226_downstream,'226_power_down_2wakes')
-    save(path,power_46_upstream,'46_power_up_2wakes')
-    save(path,power_46_downstream,'46_power_down_2wakes')
-    save(path,power_106_upstream,'106_power_up_2wakes')
-    save(path,power_106_downstream,'106_power_down_2wakes')
+    # save(path,power_226_upstream,'226_power_up_2wakes')
+    # save(path,power_226_downstream,'226_power_down_2wakes')
+    # save(path,power_46_upstream,'46_power_up_2wakes')
+    # save(path,power_46_downstream,'46_power_down_2wakes')
+    # save(path,power_106_upstream,'106_power_up_2wakes')
+    # save(path,power_106_downstream,'106_power_down_2wakes')
    
 
         # make a new list for each angle direction, append to each
