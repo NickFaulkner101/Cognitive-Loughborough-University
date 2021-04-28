@@ -244,8 +244,11 @@ def main():
 
         downstream_array.extend(returned_ransac[3])
 
-        power_226_upstream.append(returned_ransac[4])
-        power_226_downstream.append(returned_ransac[5])
+        power_226_upstream.extend(returned_ransac[4])
+        power_226_downstream.extend(returned_ransac[5])
+
+    
+
 
 
         # save(path,file,'226_degree'):
@@ -278,8 +281,8 @@ def main():
         windspeed_106_upstream.append(returned_ransac[2])
         windspeed_106_downstream.append(returned_ransac[3])
 
-        power_106_upstream.append(returned_ransac[4])
-        power_106_downstream.append(returned_ransac[5])
+        power_106_upstream.extend(returned_ransac[4])
+        power_106_downstream.extend(returned_ransac[5])
 
     turbine_list_46 = []
     # Load in 46 Degrees
@@ -309,8 +312,8 @@ def main():
         windspeed_46_upstream.append(returned_ransac[2])
         windspeed_46_downstream.append(returned_ransac[3])
 
-        power_46_upstream.append(returned_ransac[4])
-        power_46_downstream.append(returned_ransac[5])
+        power_46_upstream.extend(returned_ransac[4])
+        power_46_downstream.extend(returned_ransac[5])
 
     #save data for rapid graphing later
 
