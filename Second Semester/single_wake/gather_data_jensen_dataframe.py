@@ -38,24 +38,36 @@ def get_smoothed_jensen_line(distance):
         Ct = get_ct_value(i)
         factor = (1-((1-math.sqrt(1-Ct))/(1+(kw*turbine_distance/rd))**2))
         jensen_speed.append(factor)
-        single_wake_data.append(factor*x)
+        single_wake_data.append(factor*i)
 
 
-    x_new = np.linspace(x.min(), x.max(), 100)
+    x_smoothed = np.linspace(x.min(), x.max(), 3000)
+    spl = make_interp_spline(x, single_wake_data, k=1)
+    jensen_smoothed = spl(x_smoothed)
 
-    spl = make_interp_spline(x, jensen_speed, k=1)  # type: BSpline
+
+
     #powercurve load in
-    smooth_jensen_speed = spl(x_new)
-    smoothed_jensen_line = [x_new,smooth_jensen_speed]
 
-    return smoothed_jensen_line 
+    # plt.plot(x,single_wake_data)
+    # plt.plot(x_smoothed,jensen_smoothed)
+    # plt.grid()
+    # plt.show()
+
+    # smoothed_jensen_line = [x_new,smooth_jensen_speed]
+
+  
+
+
+    return [x_smoothed,jensen_smoothed] 
 
 
 
 def get_jensen_speed(correct_windspeed,jensen_line):
     
     index_power = min(range(len(jensen_line[0])), key=lambda i: abs(jensen_line[0][i]-correct_windspeed))
-    downstream_speed = jensen_line[0][index_power]
+    downstream_speed = jensen_line[1][index_power]
+    # print(str(downstream_speed) + '  ' + str(correct_windspeed))
     return downstream_speed
 
 
@@ -68,8 +80,11 @@ def get_dataframe(lead,behind,angle_lower,angle_higher):
 
 
     distance = get_distances(lead,behind)
+    print(distance)
 
     jensen_line = get_smoothed_jensen_line(distance)
+
+    
 
     print('Upstream: ' + lead + ' Downstream: ' + behind + ' Wind Angle Between: ' + str(angle_lower) + ' & ' + str(angle_higher))
 
@@ -122,8 +137,8 @@ def get_dataframe(lead,behind,angle_lower,angle_higher):
     (final_df[lead+'_Grd_Prod_Pwr_Avg'] > 0) &   
     (final_df[behind+'_Grd_Prod_Pwr_Avg'] > 0) & #this removes null values that pandas struggles with
     
-    (final_df[lead+'_Grd_Prod_Pwr_InternalDerateStat']<4) & #this removes curtailed values
-    (final_df[behind+'_Grd_Prod_Pwr_InternalDerateStat']<4) &
+    # (final_df[lead+'_Grd_Prod_Pwr_InternalDerateStat']<4) & #this removes curtailed values
+    # (final_df[behind+'_Grd_Prod_Pwr_InternalDerateStat']<4) &
     (final_df[lead+'_Amb_WindDir_Abs_Avg']>=angle_lower) & #220 degrees as the turbines of interest are aligned along this plane for wind dir
     (final_df[lead+'_Amb_WindDir_Abs_Avg']< angle_higher)][[
         lead+'_Grd_Prod_Pwr_Avg',
@@ -161,8 +176,9 @@ def get_dataframe(lead,behind,angle_lower,angle_higher):
             correct_windspeed = getattr(row, upstream_turbine_windspeed)
             corrected_Upstream_windspeed.append(correct_windspeed)
 
+
         
-        predicted_downstream = get_jensen_speed(correct_windspeed,jensen_line)
+        predicted_downstream = get_jensen_speed(correct_windspeed,jensen_line) #get downstream Turbine B windspeed from Turbine A windspeed
         jensen_power = return_power_value(predicted_downstream,powercurve_windspeed_new,power_smooth)
         jensen_predicted_windspeed.append(predicted_downstream)
         jensen_predicted_power.append(jensen_power)
@@ -194,6 +210,10 @@ def get_dataframe(lead,behind,angle_lower,angle_higher):
             correct_windspeed = getattr(row, downstream_turbine_windspeed)
             corrected_downstream_windspeed.append(correct_windspeed)
 
+
+
+
+
     power_df["power_inferred_"+behind+"_windspeed"] = corrected_downstream_windspeed
 
     print('Saving Dataframe...')
@@ -201,7 +221,7 @@ def get_dataframe(lead,behind,angle_lower,angle_higher):
     # now we want to append to each row, the predicted downsream speed, and the predicted downstream power
 
 
-    power_df.to_csv(r'Dataframe_'+lead+'_'+behind+'_dataframe.csv', index = False, header=True)
+    power_df.to_csv(r'Dataframe_'+lead+'_'+behind+'.csv', header=True)
 
 
     return
@@ -265,7 +285,35 @@ def get_distances(lead_turbine,rear_turbine):
 def main():
 
 
-    get_dataframe('N10','M10',226,227)
+    turbine_list = csv.reader(open('turbine_list_46.txt', "r"), delimiter=",")
+    next(turbine_list)
+
+    for row in turbine_list:
+        lead_turbine = row[0]
+        rear_turbine = row[1]
+        get_dataframe(str(lead_turbine),str(rear_turbine),44,48)
+
+    turbine_list = csv.reader(open('turbine_list_226.txt', "r"), delimiter=",")
+    next(turbine_list)
+
+    for row in turbine_list:
+        lead_turbine = row[0]
+        rear_turbine = row[1]
+        get_dataframe(str(lead_turbine),str(rear_turbine),224,228)
+
+    turbine_list = csv.reader(open('turbine_list_106.txt', "r"), delimiter=",")
+    next(turbine_list)
+
+    for row in turbine_list:
+        lead_turbine = row[0]
+        rear_turbine = row[1]
+        get_dataframe(str(lead_turbine),str(rear_turbine),104,108)
+    
+    
+
+
+
+
 
     return
 
