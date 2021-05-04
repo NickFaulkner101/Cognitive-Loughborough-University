@@ -764,11 +764,22 @@ def get_all_data_and_polyfit():
     power_smooth = spl(powercurve_windspeed_new)
 
     
+
+
+    
     turbine_list = csv.reader(open('turbine_list_46.txt', "r"), delimiter=",")
     next(turbine_list)
 
     Turbine_As_power = []
     Turbine_Bs_power = []
+
+    Turbine_As_speed = []
+    Turbine_Bs_speed = []
+
+    Turbine_As_inferred_speed = []
+    Turbine_Bs_inferred_speed = []
+    
+
 
     distances = []
     for row in turbine_list:
@@ -788,6 +799,22 @@ def get_all_data_and_polyfit():
 
         Turbine_As_power.extend(Turbine_A_power)
         Turbine_Bs_power.extend(Turbine_B_power)
+
+        Turbine_A_inferred_speed = np.asarray(df['power_inferred_'+lead+'_windspeed'])
+        Turbine_B_inferred_speed = np.asarray(df['power_inferred_'+behind+'_windspeed'])
+
+        Turbine_As_inferred_speed.extend(Turbine_A_inferred_speed)
+        Turbine_Bs_inferred_speed.extend(Turbine_B_inferred_speed)
+
+        Turbine_A_speed = np.asarray(df[lead+'_Amb_WindSpeed_Avg'])
+        Turbine_B_speed = np.asarray(df[behind+'_Amb_WindSpeed_Avg'])
+
+        Turbine_As_speed.extend(Turbine_A_speed)
+        Turbine_Bs_speed.extend(Turbine_B_speed)
+
+
+        
+
 
         # coefficients = np.polyfit(Turbine_A_power, Turbine_B_power, 4)
         # polynomial = np.poly1d(coefficients)
@@ -822,6 +849,24 @@ def get_all_data_and_polyfit():
 
         Turbine_As_power.extend(Turbine_A_power)
         Turbine_Bs_power.extend(Turbine_B_power)
+
+
+        Turbine_A_speed = np.asarray(df[lead+'_Amb_WindSpeed_Avg'])
+        Turbine_B_speed = np.asarray(df[behind+'_Amb_WindSpeed_Avg'])
+
+        Turbine_As_speed.extend(Turbine_A_speed)
+        Turbine_Bs_speed.extend(Turbine_B_speed)
+
+        Turbine_A_inferred_speed = np.asarray(df['power_inferred_'+lead+'_windspeed'])
+        Turbine_B_inferred_speed = np.asarray(df['power_inferred_'+behind+'_windspeed'])
+
+        Turbine_As_inferred_speed.extend(Turbine_A_inferred_speed)
+        Turbine_Bs_inferred_speed.extend(Turbine_B_inferred_speed)
+
+
+        
+    
+
 
         # coefficients = np.polyfit(Turbine_A_power, Turbine_B_power, 4)
         # polynomial = np.poly1d(coefficients)
@@ -858,6 +903,20 @@ def get_all_data_and_polyfit():
         Turbine_As_power.extend(Turbine_A_power)
         Turbine_Bs_power.extend(Turbine_B_power)
 
+        Turbine_A_speed = np.asarray(df[lead+'_Amb_WindSpeed_Avg'])
+        Turbine_B_speed = np.asarray(df[behind+'_Amb_WindSpeed_Avg'])
+
+        Turbine_As_speed.extend(Turbine_A_speed)
+        Turbine_Bs_speed.extend(Turbine_B_speed)
+
+        Turbine_A_inferred_speed = np.asarray(df['power_inferred_'+lead+'_windspeed'])
+        Turbine_B_inferred_speed = np.asarray(df['power_inferred_'+behind+'_windspeed'])
+
+        Turbine_As_inferred_speed.extend(Turbine_A_inferred_speed)
+        Turbine_Bs_inferred_speed.extend(Turbine_B_inferred_speed)
+
+
+
         # coefficients = np.polyfit(Turbine_A_power, Turbine_B_power, 4)
         # polynomial = np.poly1d(coefficients)
         # poly_x = np.linspace(Turbine_A_power.min(),Turbine_A_power.max(),1000)    
@@ -876,6 +935,98 @@ def get_all_data_and_polyfit():
 
     Turbine_As_power = np.asarray(Turbine_As_power)
     Turbine_Bs_power = np.asarray(Turbine_Bs_power)
+    Turbine_As_speed = np.asarray(Turbine_As_speed)
+    Turbine_Bs_speed = np.asarray(Turbine_Bs_speed)
+    # print(Turbine_As_speed)
+
+    # plt.figure(3)
+
+    # plt.plot(powercurve_windspeed_new, power_smooth,label='OEM Power Curve',color='red',linewidth="3")
+    # plt.scatter(Turbine_As_inferred_speed, Turbine_As_power,label='Powercurve - Corrected Data',s=10,color=[0.257,0.5195,0.953],marker='x')
+    # plt.plot([12.5, 25],[3448,3448], color='red',linewidth="3")
+    # plt.scatter(Turbine_Bs_inferred_speed, Turbine_Bs_power,color=[0.257,0.5195,0.953],s=10,marker='x')
+    # plt.xlabel('Wind Speed (m/s) ', fontsize=16)
+    # plt.xticks(fontsize= 14)
+    # plt.yticks(fontsize= 14)
+    # plt.ylabel('Power (kW) ', fontsize=16)
+    # plt.title('OEM Power Curve vs Corrected Wind Speed and Turbine Grid Power', fontsize=16)
+    # plt.grid()
+    
+    # plt.legend(loc="upper left")
+
+    # plt.show()
+
+
+
+
+
+    # plt.plot(powercurve_windspeed_new, power_smooth,label='OEM Power Curve',color='red',linewidth="3")
+    # plt.scatter(Turbine_As_speed, Turbine_As_power,label='Anemometer Data',s=5,color=[0.257,0.5195,0.953],marker='x')
+    # plt.plot([12.5, 25],[3448,3448], color='red',linewidth="3")
+    # plt.scatter(Turbine_Bs_speed, Turbine_Bs_power,color=[0.257,0.5195,0.953],s=2,marker='x')
+    # plt.xlabel('Wind Speed (m/s) ', fontsize=16)
+    # plt.xticks(fontsize= 14)
+    # plt.yticks(fontsize= 14)
+    # plt.ylabel('Power (kW) ', fontsize=16)
+    # plt.title('OEM Power Curve vs Anemometer Wind Speed and Turbine Grid Power - Removed Curtailed Values', fontsize=16)
+    # plt.grid()
+    
+    # plt.legend(loc="upper left")
+
+    # plt.show()
+
+
+
+    # plt.figure(3)
+
+    
+    # plt.scatter(Turbine_As_power, Turbine_Bs_power,label='Turbine Data',s=5,color=[0.257,0.5195,0.953],marker='x')
+    # plt.xlabel('Upstream Turbine Power (kW) ', fontsize=16)
+    # plt.plot([0,3500],[0,3500],color="red",linewidth=1,label="No Wake Loss")
+    # plt.xticks(fontsize= 14)
+    # plt.yticks(fontsize= 14)
+    # plt.ylabel('Downstream Turbine Power (kW) ', fontsize=16)
+    # plt.title('Upstream vs Downstream Turbine Power Production - Direction Filtered', fontsize=16)
+    # plt.grid()
+    
+    # plt.legend(loc="upper left")
+
+    # plt.scatter(Turbine_As_speed, Turbine_Bs_speed,label='Turbine Data',s=4,color=[0.257,0.5195,0.953],marker='x',)
+    # plt.xlabel('Upstream Turbine Speed (m/s) ', fontsize=16)
+    # plt.plot([0,25],[0,25],color="red",linewidth=1,label="No Wake Loss")
+    # plt.xticks(fontsize= 14)
+    # plt.yticks(fontsize= 14)
+    # plt.ylabel('Downstream Turbine Power (kW) ', fontsize=16)
+    # plt.title('Upstream vs Downstream Turbine Wind Speed Production', fontsize=16)
+    # plt.grid()
+    
+    # # plt.legend(loc="upper left")
+
+    plt.show()
+
+
+    # plt.figure(3)
+    # print(len(Turbine_As_power))
+    # print(len(Turbine_As_speed))
+
+
+    
+    # plt.plot(powercurve_windspeed_new, power_smooth,label='OEM Power Curve',color="orange",linewidth="3")
+    # plt.scatter(Turbine_As_speed, Turbine_As_power,label='Anemometer Data',s=3,color='blue',marker='x')
+    # plt.plot([12.5, 25],[3448,3448], color="orange",linewidth="3")
+    # plt.scatter(Turbine_Bs_speed, Turbine_Bs_power,color="blue",s=2,marker='x')
+    # plt.xlabel('Wind Speed (m/s) ', fontsize=12)
+    # plt.xticks(fontsize= 12)
+    # plt.ylabel('Power (kW) ', fontsize=14)
+    # plt.title('OEM Power Curve vs Anemometer Wind Speed and Turbine Grid Power (Curtailed Filtered Out) ')
+    # plt.grid()
+    
+    # plt.legend(loc="upper left")
+
+    # plt.show()
+    # return
+
+
 
     # ransac = linear_model.RANSACRegressor()
     # ransac.fit(Turbine_As_power, Turbine_Bs_power)
@@ -908,14 +1059,15 @@ def get_all_data_and_polyfit():
 
 
 
-    coefficients = np.polyfit(Turbine_As_power, Turbine_Bs_power, 6)
+    coefficients = np.polyfit(Turbine_As_power, Turbine_Bs_power, 5)
+
+    sum_of_square_error = np.sum((np.polyval(np.polyfit(Turbine_As_power, Turbine_Bs_power, 6), Turbine_As_power) - Turbine_Bs_power)**2)
+    print(np.sqrt(sum_of_square_error/len(Turbine_As_power)))
+    print('^Root Mean Square Error')
     polynomial = np.poly1d(coefficients)
     poly_x = np.linspace(Turbine_As_power.min(),Turbine_As_power.max(),len(Turbine_Bs_power))    
     ys = polynomial(poly_x)
-
-
-
-
+   
     print('polyfitting Curve')
     print('Jensen Start')
     jensen_x_axis = []
@@ -925,6 +1077,8 @@ def get_all_data_and_polyfit():
         jensen_x_axis.append(power)
         power = return_power_value(jensen_line[1][i],powercurve_windspeed_new,power_smooth)
         jensen_y_axis.append(power)
+        if i % 10 == 0:
+            print(i)
 
 
     jensen_x_axis_enhanced = []
@@ -934,9 +1088,15 @@ def get_all_data_and_polyfit():
         jensen_x_axis_enhanced.append(power)
         power = return_power_value(jensen_line_enhanced[1][i],powercurve_windspeed_new,power_smooth)
         jensen_y_axis_enhanced.append(power)
+        if i % 10 == 0:
+            print(i)
+
+    # residuals(poly_x,ys,Turbine_As_power,Turbine_Bs_power)
 
 
-    residuals(poly_x,ys,Turbine_As_power,Turbine_Bs_power)
+    
+    
+
 
     plt.figure(10)
     print('Jensen End')
@@ -955,7 +1115,7 @@ def get_all_data_and_polyfit():
 
 
 
-# normalised_difference = float(downstream_value - corresponding_predicted_jensen)/standard_deviation
+# normalised_difference = float(downstream_value - corresponding_model_prediction)/standard_deviation
 #     residuals.append(float(normalised_difference))
 #     print(str(i)+' Calculating Residuals')
 
