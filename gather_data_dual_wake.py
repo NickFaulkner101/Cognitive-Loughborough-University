@@ -286,8 +286,7 @@ def get_avg(lead,mid,third,angle_lower,angle_higher,speed):
         third+'_Grd_Prod_Pwr_Avg',
         ]].copy()
 
-
-    return [np.asarray(final_df[lead+'_Grd_Prod_Pwr_Avg']),np.asarray(final_df[mid+'_Grd_Prod_Pwr_Avg']).np.asarray(final_df[third+'_Grd_Prod_Pwr_Avg'])]
+    return [np.array(final_df[lead+'_Grd_Prod_Pwr_Avg']),np.array(final_df[mid+'_Grd_Prod_Pwr_Avg']),np.array(final_df[third+'_Grd_Prod_Pwr_Avg'])]
 
 
 
@@ -358,10 +357,7 @@ def getavg():
         mid_power_array.extend(returned_power_list[1])
         third_power_array.extend(returned_power_list[2])
 
-    print(third_power_array)
-    print(np.average(third_power_array))
 
-    return
 
     turbine_list = csv.reader(open('turbine_list_106_2wakes.txt', "r"), delimiter=",")
     next(turbine_list)
@@ -370,29 +366,28 @@ def getavg():
         lead = row[0]
         mid = row[1]
         third = row[2]
-        returned_power_list = get_avg(lead,mid,third,44,48,8)
-        print(returned_power_list)
+        returned_power_list = get_avg(lead,mid,third,104,108,8)
         lead_power_array.extend(returned_power_list[0])
         mid_power_array.extend(returned_power_list[1])
         third_power_array.extend(returned_power_list[2])
 
 
-    turbine_list = csv.reader(open('turbine_list_46_2wakes.txt', "r"), delimiter=",")
+    turbine_list = csv.reader(open('turbine_list_226_2wakes.txt', "r"), delimiter=",")
     next(turbine_list)
 
     for row in turbine_list:
         lead = row[0]
         mid = row[1]
         third = row[2]
-        returned_power_list = get_avg(lead,mid,third,44,48,8)
+        returned_power_list = get_avg(lead,mid,third,224,228,8)
         print(returned_power_list)
-        lead_power_array.append(returned_power_list[0])
-        mid_power_array.append(returned_power_list[1])
-        third_power_array.append(returned_power_list[2])
+        lead_power_array.extend(returned_power_list[0])
+        mid_power_array.extend(returned_power_list[1])
+        third_power_array.extend(returned_power_list[2])
 
-
-    third_avg = np.average(third_power_array)
-
+    # print(np.nanmean(lead_power_array))
+    # print(np.nanmean(mid_power_array))
+    # print(np.nanmean(third_power_array))
 
 def main():
 
