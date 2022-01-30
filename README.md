@@ -1,3 +1,5 @@
+![Wind Farm Example](https://user-images.githubusercontent.com/55847333/151715275-ce47ff08-c23f-4ca1-ada2-78f658066425.png)
+
 # Cognitive-Loughborough-University
 Open the WindFarmAnalyticalModel folder and download the python file and turbine coordinates .txt file
 Run the python script by calling the file followed by the wind direction. 
@@ -12,4 +14,4 @@ The Root Sum Of Squares method is used to calculate wind speeds in cells that ar
 Calculation times are reduced by masking, where cells lying geometrically within the turbine wakes are used for wind speed calculations. This prevents a lengthy for-loop iterating over every cell in the flow domain.
 
 Any questions please email nicholasfaulkner@btinternet.com!
-![Wind Farm Example](https://user-images.githubusercontent.com/55847333/151715275-ce47ff08-c23f-4ca1-ada2-78f658066425.png)
+
