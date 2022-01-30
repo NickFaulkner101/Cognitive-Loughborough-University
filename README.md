@@ -16,12 +16,4 @@ Calculation times are reduced by masking, where cells lying geometrically within
 Any questions please email nicholasfaulkner@btinternet.com!
 
 
-DIV.repository-content {
-    display: table
-}
-DIV.js-repo-meta-container {
-    display: table-caption
-}
-DIV.readme {
-    display: table-header-group
-}
+$('#readme').insertBefore('.file-navigation');
