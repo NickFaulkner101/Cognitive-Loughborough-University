@@ -1,5 +1,5 @@
 # Cognitive-Loughborough-University
-Open the WakeAnalyticalModel folder and download the python file and turbine coordinates .txt file
+Open the WindFarmAnalyticalModel folder and download the python file and turbine coordinates .txt file
 Run the python script by calling the file followed by the wind direction. 
 
 E.g. "python Jensens_AEP 93" 
