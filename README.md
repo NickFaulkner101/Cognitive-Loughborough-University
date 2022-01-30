@@ -1,7 +1,7 @@
 ![Wind Farm Example](https://user-images.githubusercontent.com/55847333/151715275-ce47ff08-c23f-4ca1-ada2-78f658066425.png)
 
 # Cognitive-Loughborough-University
-Open the WindFarmAnalyticalModel folder and download the python file and turbine coordinates .txt file
+Open the "Example" folder and download the python file and turbine coordinates .txt file
 Run the python script by calling the file followed by the wind direction. 
 
 E.g. "python Jensens_AEP 93" 
